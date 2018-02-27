@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>TransformGizmo.qml</file>
+        <file>SOrbitCameraController.qml</file>
+        <file>TransformGizmoBeam.qml</file>
+        <file>TransformGizmoPlane.qml</file>
+        <file>SimpleMaterial.qml</file>
+        <file>Floor.qml</file>
+    </qresource>
+</RCC>
