@@ -16,6 +16,7 @@ Entity {
     property var layer
     property var cameraController
     property var targetTransform
+    property var targetEntity
     property real linearSpeed: 0.01
     property real angularSpeed: 2.0
     property bool visible: false
@@ -34,19 +35,41 @@ Entity {
 
     components: [ownTransform, layer]
 
+    function fixOwnTransform() {
+        // cancel rotation and scaling component of parent's (target) transform
+        var t = targetTransform.matrix
+        var i = t.inverted()
+        i.m14 = i.m24 = i.m34 = 0
+        ownTransform.matrix = i
+    }
+
+    QQ2.Loader {
+        active: !!targetTransform
+        sourceComponent: QQ2.Connections {
+            target: targetTransform
+            onMatrixChanged: fixOwnTransform()
+        }
+    }
+
     function qmlInstanceOf(obj, className) {
         return obj.toString().indexOf(className + "(") === 0;
     }
 
+    function getTransform(entity) {
+        if(entity instanceof Entity)
+            for(var i = 0; i < entity.components.length; i++)
+                if(qmlInstanceOf(entity.components[i], "Qt3DCore::QTransform"))
+                    return entity.components[i]
+    }
+
     function attachTo(entity) {
-        if(!(entity instanceof Entity)) return
-        for(var i = 0; i < entity.components.length; i++) {
-            if(qmlInstanceOf(entity.components[i], "Qt3DCore::QTransform")) {
-                targetTransform = entity.components[i]
-                ownTransform.translation = targetTransform.translation
-                visible = true
-                return
-            }
+        var t = getTransform(entity)
+        if(t) {
+            targetEntity = entity
+            targetTransform = t
+            root.parent = entity
+            fixOwnTransform()
+            visible = true
         }
     }
 
@@ -69,9 +92,6 @@ Entity {
         targetTransform.translation.x += dx
         targetTransform.translation.y += dy
         targetTransform.translation.z += dz
-        ownTransform.translation.x += dx
-        ownTransform.translation.y += dy
-        ownTransform.translation.z += dz
     }
 
     function rotate(dx, dy, dz) {
