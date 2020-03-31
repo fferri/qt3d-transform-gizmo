@@ -86,6 +86,7 @@ Scene3D {
 
             TransformGizmo {
                 id: tg
+                layer: secondLayer
                 cameraController: mainCameraController
                 //targetTransform: t
                 size: 1.1

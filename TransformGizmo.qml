@@ -13,6 +13,7 @@ Entity {
     id: root
     property real size: 1
     readonly property real beamRadius: size * 0.05
+    property var layer
     property var cameraController
     property var targetTransform
     property real linearSpeed: 0.01
@@ -27,7 +28,11 @@ Entity {
 
     property int mode: TransformGizmo.Mode.Translation
 
-    components: [Transform {id: ownTransform}]
+    Transform {
+        id: ownTransform
+    }
+
+    components: [ownTransform, layer]
 
     function qmlInstanceOf(obj, className) {
         return obj.toString().indexOf(className + "(") === 0;
