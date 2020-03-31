@@ -141,8 +141,27 @@ Scene3D {
                     ObjectPicker {
                         onClicked: tg.attachTo(cube2Entity)
                     }
-
                 ]
+                Entity {
+                    id: cube3Entity
+                    components: [
+                        CuboidMesh {
+                            xExtent: 0.5
+                            yExtent: 0.5
+                            zExtent: 0.5
+                        },
+                        PhongMaterial {
+                            diffuse: "#c6c"
+                        },
+                        Transform {
+                            id: t2
+                            translation: Qt.vector3d(-0.5, 0, 0.5)
+                        },
+                        ObjectPicker {
+                            onClicked: tg.attachTo(cube3Entity)
+                        }
+                    ]
+                }
             }
 
             Entity {
