@@ -20,6 +20,7 @@ Entity {
     property real linearSpeed: 0.01
     property real angularSpeed: 2.0
     property bool visible: false
+    property vector3d absolutePosition: Qt.vector3d(0, 0, 0)
 
     enum Mode {
         Translation,
@@ -35,12 +36,32 @@ Entity {
 
     components: [ownTransform, layer]
 
+    function getMatrix(entity) {
+        var t = getTransform(entity)
+        if(t) return t.matrix
+        return Qt.matrix4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)
+    }
+
+    function getAbsoluteMatrix() {
+        var entity = root
+        var m = Qt.matrix4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)
+        while(entity) {
+            m = getMatrix(entity).times(m)
+            entity = entity.parent
+        }
+        return m
+    }
+
     function fixOwnTransform() {
         // cancel rotation and scaling component of parent's (target) transform
         var t = targetTransform.matrix
         var i = t.inverted()
         i.m14 = i.m24 = i.m34 = 0
         ownTransform.matrix = i
+
+        // compute absolute position to expose as a property
+        var m = getAbsoluteMatrix()
+        absolutePosition = Qt.vector3d(m.m14, m.m24, m.m34)
     }
 
     QQ2.Loader {

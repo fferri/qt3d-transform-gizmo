@@ -88,8 +88,7 @@ Scene3D {
                 id: tg
                 layer: secondLayer
                 cameraController: mainCameraController
-                //targetTransform: t
-                size: 1.1
+                size: 0.125 * absolutePosition.minus(mainCamera.position).length()
             }
         }
 
