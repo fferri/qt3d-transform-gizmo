@@ -130,8 +130,10 @@ Entity {
     }
 
     Entity {
+        id: modeSwitcher
         components: [
             SphereMesh {
+                id: modeSwitcherSphere
                 radius: beamRadius * 2
                 enabled: visible
             },
@@ -151,90 +153,53 @@ Entity {
         ]
     }
 
-    Entity {
-        id: xBeamEntity
-        components: [Transform {rotationZ: -90}]
-        TransformGizmoBeam {
-            visible: root.visible
-            gizmo: root
-            color: "#f33"
-            onDragStart: cameraController.enabled = false
-            onDrag: {
-                switch(mode) {
-                case TransformGizmo.Mode.Translation: translate(linearSpeed * dy, 0, 0); break
-                case TransformGizmo.Mode.Rotation: rotate(angularSpeed * dy, 0, 0); break
-                case TransformGizmo.Mode.Scale: scale(linearSpeed * dy, 0, 0); break
+    NodeInstantiator {
+        id: beams
+        model: [
+            {rx:  0, ry: 0, rz: -90, x: 1, y: 0, z: 0, color: "#f33"},
+            {rx:  0, ry: 0, rz:   0, x: 0, y: 1, z: 0, color: "#3f3"},
+            {rx: 90, ry: 0, rz:   0, x: 0, y: 0, z: 1, color: "#33f"}
+        ]
+        delegate: Entity {
+            components: [
+                Transform {
+                    translation: Qt.vector3d(modelData.x, modelData.y, modelData.z).times(modeSwitcherSphere.radius * 1.1)
+                    rotationX: modelData.rx
+                    rotationY: modelData.ry
+                    rotationZ: modelData.rz
                 }
+            ]
+            TransformGizmoBeam {
+                visible: root.visible
+                gizmo: root
+                color: modelData.color
+                onDragStart: cameraController.enabled = false
+                onDrag: {
+                    switch(mode) {
+                    case TransformGizmo.Mode.Translation: translate(modelData.x * linearSpeed * dy, modelData.y * linearSpeed * dy, modelData.z * linearSpeed * dy); break
+                    case TransformGizmo.Mode.Rotation: rotate(modelData.x * angularSpeed * dy, modelData.y * angularSpeed * dy, modelData.z * angularSpeed * dy); break
+                    case TransformGizmo.Mode.Scale: scale(modelData.x * linearSpeed * dy, modelData.y * linearSpeed * dy, modelData.z * linearSpeed * dy); break
+                    }
+                }
+                onDragEnd: cameraController.enabled = true
             }
-            onDragEnd: cameraController.enabled = true
         }
     }
 
-    Entity {
-        id: yBeamEntity
-        components: [Transform {rotationZ: 0}]
-        TransformGizmoBeam {
+    NodeInstantiator {
+        id: planes
+        model: [
+            {x: 1, y: 1, z: 0, axes: [0, 1]},
+            {x: 1, y: 0, z: 1, axes: [0, 2]},
+            {x: 0, y: 1, z: 1, axes: [1, 2]},
+        ]
+        delegate: TransformGizmoPlane {
             visible: root.visible
             gizmo: root
-            color: "#3f3"
+            axes: modelData.axes
             onDragStart: cameraController.enabled = false
-            onDrag: {
-                switch(mode) {
-                case TransformGizmo.Mode.Translation: translate(0, linearSpeed * dy, 0); break
-                case TransformGizmo.Mode.Rotation: rotate(0, angularSpeed * dy, 0); break
-                case TransformGizmo.Mode.Scale: scale(0, linearSpeed * dy, 0); break
-                }
-            }
+            onDrag: translate(modelData.x * linearSpeed * dx, modelData.y * linearSpeed * (modelData.axes[1] === 1 ? dy : dx), modelData.z * linearSpeed * dy)
             onDragEnd: cameraController.enabled = true
         }
-    }
-
-    Entity {
-        id: zBeamEntity
-        components: [Transform {rotationX: 90}]
-        TransformGizmoBeam {
-            visible: root.visible
-            gizmo: root
-            color: "#33f"
-            onDragStart: cameraController.enabled = false
-            onDrag: {
-                switch(mode) {
-                case TransformGizmo.Mode.Translation: translate(0, 0, linearSpeed * dy); break
-                case TransformGizmo.Mode.Rotation: rotate(0, 0, angularSpeed * dy); break
-                case TransformGizmo.Mode.Scale: scale(0, 0, linearSpeed * dy); break
-                }
-            }
-            onDragEnd: cameraController.enabled = true
-        }
-    }
-
-    TransformGizmoPlane {
-        id: xyPlane
-        visible: root.visible
-        gizmo: root
-        axes: [0, 1]
-        onDragStart: cameraController.enabled = false
-        onDrag: translate(linearSpeed * dx, linearSpeed * dy, 0)
-        onDragEnd: cameraController.enabled = true
-    }
-
-    TransformGizmoPlane {
-        id: xzPlane
-        visible: root.visible
-        gizmo: root
-        axes: [0, 2]
-        onDragStart: cameraController.enabled = false
-        onDrag: translate(linearSpeed * dx, 0, linearSpeed * dy)
-        onDragEnd: cameraController.enabled = true
-    }
-
-    TransformGizmoPlane {
-        id: yzPlane
-        visible: root.visible
-        gizmo: root
-        axes: [1, 2]
-        onDragStart: cameraController.enabled = false
-        onDrag: translate(0, linearSpeed * dx, linearSpeed * dy)
-        onDragEnd: cameraController.enabled = true
     }
 }
