@@ -36,17 +36,14 @@ Scene3D {
                                     NoDraw {}
                                 }
                                 LayerFilter {
-                                    objectName: "firstLayerFilter"
-                                    id: firstLayerFilter
-                                    layers: [firstLayer]
+                                    filterMode: LayerFilter.DiscardAnyMatchingLayers
+                                    layers: [topLayer]
                                 }
                                 LayerFilter {
-                                    id: secondLayerFilter
-                                    objectName: "secondLayerFilter"
-                                    layers: [secondLayer]
+                                    filterMode: LayerFilter.AcceptAnyMatchingLayers
+                                    layers: [topLayer]
                                     ClearBuffers {
                                         buffers: ClearBuffers.DepthBuffer
-                                        clearColor: "#ddd"
                                     }
                                 }
                             }
@@ -77,107 +74,96 @@ Scene3D {
             camera: mainCamera
         }
 
-        Entity {
-            components: [Layer {
-                id: secondLayer
-                objectName: "secondLayer"
-                recursive: true
-            }]
+        Layer {
+            id: topLayer
+            recursive: true
+        }
 
-            TransformGizmo {
-                id: tg
-                layer: secondLayer
-                cameraController: mainCameraController
-                size: 0.125 * absolutePosition.minus(mainCamera.position).length()
+        TransformGizmo {
+            id: tg
+            layer: topLayer
+            cameraController: mainCameraController
+            size: 0.125 * absolutePosition.minus(mainCamera.position).length()
+        }
+
+        Floor {components: [Transform {rotationX: 90; translation: "0,-.5,0"}]}
+
+        Entity {
+            id: cube1Entity
+            components: [
+                CuboidMesh {
+                    xExtent: 1
+                    yExtent: 1
+                    zExtent: 1
+                },
+                PhongMaterial {
+                    diffuse: "#aaa"
+                },
+                Transform {
+                    rotationX: -45
+                    rotationY: 45
+                    translation: Qt.vector3d(0.5, 0.5, 0.5)
+                },
+                ObjectPicker {
+                    onClicked: tg.attachTo(cube1Entity)
+                }
+            ]
+        }
+
+        Entity {
+            id: cube2Entity
+            components: [
+                CuboidMesh {
+                    xExtent: 1
+                    yExtent: 1
+                    zExtent: 1
+                },
+                PhongMaterial {
+                    diffuse: "#6cc"
+                },
+                Transform {
+                    id: t
+                    translation: Qt.vector3d(-0.5, 0, 0.5)
+                },
+                ObjectPicker {
+                    onClicked: tg.attachTo(cube2Entity)
+                }
+            ]
+            Entity {
+                id: cube3Entity
+                components: [
+                    CuboidMesh {
+                        xExtent: 0.5
+                        yExtent: 0.5
+                        zExtent: 0.5
+                    },
+                    PhongMaterial {
+                        diffuse: "#c6c"
+                    },
+                    Transform {
+                        id: t2
+                        translation: Qt.vector3d(-0.5, 0, 0.5)
+                    },
+                    ObjectPicker {
+                        onClicked: tg.attachTo(cube3Entity)
+                    }
+                ]
             }
         }
 
         Entity {
-            components: [Layer {
-                objectName: "firstLayer"
-                id : firstLayer
-                recursive: true
-            }]
-
-            Floor {components: [Transform {rotationX: 90; translation: "0,-.5,0"}]}
-
-            Entity {
-                id: cube1Entity
-                components: [
-                    CuboidMesh {
-                        xExtent: 1
-                        yExtent: 1
-                        zExtent: 1
-                    },
-                    PhongMaterial {
-                        diffuse: "#aaa"
-                    },
-                    Transform {
-                        rotationX: -45
-                        rotationY: 45
-                        translation: Qt.vector3d(0.5, 0.5, 0.5)
-                    },
-                    ObjectPicker {
-                        onClicked: tg.attachTo(cube1Entity)
-                    }
-                ]
-            }
-
-            Entity {
-                id: cube2Entity
-                components: [
-                    CuboidMesh {
-                        xExtent: 1
-                        yExtent: 1
-                        zExtent: 1
-                    },
-                    PhongMaterial {
-                        diffuse: "#6cc"
-                    },
-                    Transform {
-                        id: t
-                        translation: Qt.vector3d(-0.5, 0, 0.5)
-                    },
-                    ObjectPicker {
-                        onClicked: tg.attachTo(cube2Entity)
-                    }
-                ]
-                Entity {
-                    id: cube3Entity
-                    components: [
-                        CuboidMesh {
-                            xExtent: 0.5
-                            yExtent: 0.5
-                            zExtent: 0.5
-                        },
-                        PhongMaterial {
-                            diffuse: "#c6c"
-                        },
-                        Transform {
-                            id: t2
-                            translation: Qt.vector3d(-0.5, 0, 0.5)
-                        },
-                        ObjectPicker {
-                            onClicked: tg.attachTo(cube3Entity)
-                        }
-                    ]
+            components: [
+                PointLight {
+                    color: "white"
+                    intensity: 0.9
+                    constantAttenuation: 1.0
+                    linearAttenuation: 0.0
+                    quadraticAttenuation: 0.0025
+                },
+                Transform {
+                    translation: Qt.vector3d(1.0, 3.0, -2.0)
                 }
-            }
-
-            Entity {
-                components: [
-                    PointLight {
-                        color: "white"
-                        intensity: 0.9
-                        constantAttenuation: 1.0
-                        linearAttenuation: 0.0
-                        quadraticAttenuation: 0.0025
-                    },
-                    Transform {
-                        translation: Qt.vector3d(1.0, 3.0, -2.0)
-                    }
-                ]
-            }
+            ]
         }
     }
 }
