@@ -29,6 +29,14 @@ Entity {
     }
 
     property int mode: TransformGizmo.Mode.Translation
+    property bool canTranslate: true
+    property bool canRotate: true
+    property bool canScale: false
+    property var modes: [
+        ...(canTranslate ? [TransformGizmo.Mode.Translation] : []),
+        ...(canRotate ? [TransformGizmo.Mode.Rotation] : []),
+        ...(canScale ? [TransformGizmo.Mode.Scale] : []),
+    ]
 
     Transform {
         id: ownTransform
@@ -141,14 +149,7 @@ Entity {
                 diffuse: "#999"
             },
             ObjectPicker {
-                onClicked: {
-                    switch(mode)
-                    {
-                    case TransformGizmo.Mode.Translation: mode = TransformGizmo.Mode.Rotation; break;
-                    case TransformGizmo.Mode.Rotation: mode = TransformGizmo.Mode.Scale; break;
-                    case TransformGizmo.Mode.Scale: mode = TransformGizmo.Mode.Translation; break;
-                    }
-                }
+                onClicked: mode = (modes.indexOf(mode) + 1) % modes.length
             }
         ]
     }
