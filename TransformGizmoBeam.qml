@@ -70,7 +70,7 @@ Entity {
         ConeMesh {
             id: translateMesh
             enabled: visible && mode === TransformGizmo.Mode.Translation
-            bottomRadius: beamRadius * 1.5
+            bottomRadius: beamRadius * 2
             topRadius: 0
             length: size * 0.2
         }

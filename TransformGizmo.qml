@@ -12,7 +12,7 @@ import Qt3D.Animation 2.9
 Entity {
     id: root
     property real size: 1
-    readonly property real beamRadius: size * 0.05
+    readonly property real beamRadius: size * 0.035
     property var layer
     property var cameraController
     property var targetTransform
