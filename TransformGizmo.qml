@@ -53,10 +53,10 @@ Entity {
     }
 
     function fixOwnTransform() {
-        // cancel rotation and scaling component of parent's (target) transform
+        // cancel rotation component of parent's (target) transform
         var t = targetTransform.matrix
         var i = t.inverted()
-        i.m14 = i.m24 = i.m34 = 0
+        i = i.times(Qt.matrix4x4(1,0,0,t.m14,0,1,0,t.m24,0,0,1,t.m34,0,0,0,1))
         ownTransform.matrix = i
 
         // compute absolute position to expose as a property
