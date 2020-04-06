@@ -345,10 +345,7 @@ Entity {
             readonly property bool active: root.activeElement === modelData.name
             readonly property bool hilighted: active || (root.activeElement === "" && hover)
             readonly property color color: "#dd6"
-            readonly property bool x: modelData.v.x
-            readonly property bool y: modelData.v.y
-            readonly property bool z: modelData.v.z
-            readonly property var axes: [...(x ? [0] : []), ...(y ? [1] : []), ...(z ? [2] : [])]
+            readonly property var axes: [...(modelData.v.x ? [0] : []), ...(modelData.v.y ? [1] : []), ...(modelData.v.z ? [2] : [])]
 
             components: [
                 CuboidMesh {
@@ -356,14 +353,12 @@ Entity {
                     readonly property real squareSize: root.size * 0.3
                     readonly property real squareThickness: root.beamRadius * 0.5
                     enabled: root.visible
-                    xExtent: plane.x ? squareSize : squareThickness
-                    yExtent: plane.y ? squareSize : squareThickness
-                    zExtent: plane.z ? squareSize : squareThickness
+                    xExtent: modelData.v.x ? squareSize : squareThickness
+                    yExtent: modelData.v.y ? squareSize : squareThickness
+                    zExtent: modelData.v.z ? squareSize : squareThickness
                 },
                 Transform {
-                    readonly property real margin: root.size * 0.025
-                    readonly property real d: root.beamRadius + margin + cuboid.squareSize / 2
-                    translation: modelData.v.times(d)
+                    translation: modelData.v.times(root.beamRadius + root.size * 0.025 + cuboid.squareSize / 2)
                 },
                 PhongMaterial {
                     ambient: plane.hilighted ? Qt.lighter(plane.color, root.hoverHilightFactor) : plane.color
