@@ -248,7 +248,6 @@ Entity {
                 readonly property bool active: root.activeElement === modelData.name
                 readonly property bool hilighted: active || (root.activeElement === "" && hover)
                 readonly property color color: modelData.color
-                property bool dragging: false
 
                 components: [beamPicker]
 
@@ -350,7 +349,6 @@ Entity {
             readonly property bool y: modelData.v.y
             readonly property bool z: modelData.v.z
             readonly property var axes: [...(x ? [0] : []), ...(y ? [1] : []), ...(z ? [2] : [])]
-            property bool dragging: false
 
             components: [
                 CuboidMesh {
