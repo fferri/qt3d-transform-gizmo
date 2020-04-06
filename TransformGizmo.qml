@@ -27,11 +27,6 @@ Entity {
     property bool canTranslate: true
     property bool canRotate: true
     property bool canScale: false
-    property var modes: [
-        ...(canTranslate ? [TransformGizmo.Mode.Translation] : []),
-        ...(canRotate ? [TransformGizmo.Mode.Rotation] : []),
-        ...(canScale ? [TransformGizmo.Mode.Scale] : []),
-    ]
     property var hoverElements: new Set()
     property var hoverElement: ""
     property var activeElement: ""
@@ -166,6 +161,15 @@ Entity {
                              q1.scalar * q2.z + q1.z * q2.scalar + q1.x * q2.y - q1.y * q2.x);
     }
 
+    function switchMode() {
+        var modes = [
+            ...(canTranslate ? [TransformGizmo.Mode.Translation] : []),
+            ...(canRotate ? [TransformGizmo.Mode.Rotation] : []),
+            ...(canScale ? [TransformGizmo.Mode.Scale] : []),
+        ]
+        mode = (modes.indexOf(mode) + 1) % modes.length
+    }
+
     function translate(dx, dy, dz) {
         if(!targetTransform) return
         targetTransform.translation.x += linearSpeed * dx
@@ -220,7 +224,7 @@ Entity {
         ObjectPicker {
             id: modeSwitcherPicker
             hoverEnabled: true
-            onClicked: mode = (modes.indexOf(mode) + 1) % modes.length
+            onClicked: root.switchMode()
             onEntered: root.trackUIElement(modeSwitcher.objectName, true)
             onExited: root.trackUIElement(modeSwitcher.objectName, false)
         }
