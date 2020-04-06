@@ -23,13 +23,6 @@ Entity {
     property vector3d absolutePosition: Qt.vector3d(0, 0, 0)
     property real hoverHilightFactor: 1.44
     property real hoverZoomFactor: 1.5
-
-    enum Mode {
-        Translation,
-        Rotation,
-        Scale
-    }
-
     property int mode: TransformGizmo.Mode.Translation
     property bool canTranslate: true
     property bool canRotate: true
@@ -39,6 +32,16 @@ Entity {
         ...(canRotate ? [TransformGizmo.Mode.Rotation] : []),
         ...(canScale ? [TransformGizmo.Mode.Scale] : []),
     ]
+    property var hoverElements: new Set()
+    property var hoverElement: ""
+    property var activeElement: ""
+    components: [ownTransform, layer]
+
+    enum Mode {
+        Translation,
+        Rotation,
+        Scale
+    }
 
     Transform {
         id: ownTransform
@@ -87,12 +90,7 @@ Entity {
         }
     }
 
-    components: [ownTransform, layer]
-
-    property var hoverElements: new Set()
-    property var hoverElement: ""
-    property var activeElement: ""
-
+    // called by ObjectPickers of individual UI elements:
     function trackUIElement(elementName, active) {
         if(active) hoverElements.add(elementName)
         else hoverElements.delete(elementName)
@@ -130,14 +128,6 @@ Entity {
         // compute absolute position to expose as a property
         var m = getAbsoluteMatrix()
         absolutePosition = Qt.vector3d(m.m14, m.m24, m.m34)
-    }
-
-    QQ2.Loader {
-        active: !!targetTransform
-        sourceComponent: QQ2.Connections {
-            target: targetTransform
-            onMatrixChanged: fixOwnTransform()
-        }
     }
 
     function qmlInstanceOf(obj, className) {
@@ -197,6 +187,14 @@ Entity {
         targetTransform.scale3D.z += linearSpeed * dz
     }
 
+    QQ2.Loader {
+        active: !!targetTransform
+        sourceComponent: QQ2.Connections {
+            target: targetTransform
+            onMatrixChanged: fixOwnTransform()
+        }
+    }
+
     Entity {
         id: modeSwitcher
         objectName: "modeSwitcher"
@@ -204,25 +202,28 @@ Entity {
         readonly property bool hover: root.hoverElement == objectName
         readonly property bool active: root.activeElement === objectName
         readonly property bool hilighted: active || (root.activeElement === "" && hover)
-        components: [
-            SphereMesh {
-                id: modeSwitcherSphere
-                readonly property real radius0: beamRadius * 2
-                readonly property real radius1: root.hoverZoomFactor * radius0
-                radius: modeSwitcher.hilighted ? radius1 : radius0
-                enabled: root.visible
-            },
-            PhongMaterial {
-                ambient: modeSwitcher.hilighted ? Qt.lighter(modeSwitcher.color, root.hoverHilightFactor) : modeSwitcher.color
-            },
-            ObjectPicker {
-                id: modeSwitcherPicker
-                hoverEnabled: true
-                onClicked: mode = (modes.indexOf(mode) + 1) % modes.length
-                onEntered: root.trackUIElement(modeSwitcher.objectName, true)
-                onExited: root.trackUIElement(modeSwitcher.objectName, false)
-            }
-        ]
+        components: [modeSwitcherSphere, modeSwitcherMaterial, modeSwitcherPicker]
+
+        SphereMesh {
+            id: modeSwitcherSphere
+            readonly property real radius0: beamRadius * 2
+            readonly property real radius1: root.hoverZoomFactor * radius0
+            radius: modeSwitcher.hilighted ? radius1 : radius0
+            enabled: root.visible
+        }
+
+        PhongMaterial {
+            id: modeSwitcherMaterial
+            ambient: modeSwitcher.hilighted ? Qt.lighter(modeSwitcher.color, root.hoverHilightFactor) : modeSwitcher.color
+        }
+
+        ObjectPicker {
+            id: modeSwitcherPicker
+            hoverEnabled: true
+            onClicked: mode = (modes.indexOf(mode) + 1) % modes.length
+            onEntered: root.trackUIElement(modeSwitcher.objectName, true)
+            onExited: root.trackUIElement(modeSwitcher.objectName, false)
+        }
     }
 
     NodeInstantiator {
@@ -233,14 +234,15 @@ Entity {
             {r: Qt.vector3d(90, 0,   0), v: Qt.vector3d(0, 0, 1), color: "#33f", name: "beamZ"}
         ]
         delegate: Entity {
-            components: [
-                Transform {
-                    translation: modelData.v.times(modeSwitcherSphere.radius0 * 1.1)
-                    rotationX: modelData.r.x
-                    rotationY: modelData.r.y
-                    rotationZ: modelData.r.z
-                }
-            ]
+            components: [beamTransform]
+
+            Transform {
+                id: beamTransform
+                translation: modelData.v.times(modeSwitcherSphere.radius0 * 1.1)
+                rotationX: modelData.r.x
+                rotationY: modelData.r.y
+                rotationZ: modelData.r.z
+            }
 
             Entity {
                 id: beam
@@ -248,7 +250,6 @@ Entity {
                 readonly property bool active: root.activeElement === modelData.name
                 readonly property bool hilighted: active || (root.activeElement === "" && hover)
                 readonly property color color: modelData.color
-
                 components: [beamPicker]
 
                 ObjectPicker {
@@ -264,6 +265,8 @@ Entity {
                 }
 
                 Entity {
+                    components: [lineMesh, lineTransform, beamMaterial]
+
                     CylinderMesh {
                         id: lineMesh
                         enabled: root.visible
@@ -275,11 +278,11 @@ Entity {
                         id: lineTransform
                         translation: Qt.vector3d(0, lineMesh.length / 2, 0)
                     }
-
-                    components: [lineMesh, lineTransform, beamMaterial]
                 }
 
                 Entity {
+                    components: [translateMesh, translateTransform, beamMaterial]
+
                     ConeMesh {
                         id: translateMesh
                         enabled: root.visible && root.mode === TransformGizmo.Mode.Translation
@@ -292,11 +295,11 @@ Entity {
                         id: translateTransform
                         translation: Qt.vector3d(0, lineMesh.length + translateMesh.length / 2, 0)
                     }
-
-                    components: [translateMesh, translateTransform, beamMaterial]
                 }
 
                 Entity {
+                    components: [rotateMesh, rotateTransform, beamMaterial]
+
                     CylinderMesh {
                         id: rotateMesh
                         enabled: root.visible && root.mode === TransformGizmo.Mode.Rotation
@@ -308,11 +311,11 @@ Entity {
                         id: rotateTransform
                         translation: Qt.vector3d(0, lineMesh.length + rotateMesh.length / 2, 0)
                     }
-
-                    components: [rotateMesh, rotateTransform, beamMaterial]
                 }
 
                 Entity {
+                    components: [scaleMesh, scaleTransform, beamMaterial]
+
                     CuboidMesh {
                         id: scaleMesh
                         enabled: root.visible && root.mode === TransformGizmo.Mode.Scale
@@ -325,8 +328,6 @@ Entity {
                         id: scaleTransform
                         translation: Qt.vector3d(0, lineMesh.length + scaleMesh.xExtent / 2, 0)
                     }
-
-                    components: [scaleMesh, scaleTransform, beamMaterial]
                 }
             }
         }
@@ -346,30 +347,34 @@ Entity {
             readonly property bool hilighted: active || (root.activeElement === "" && hover)
             readonly property color color: "#dd6"
             readonly property var axes: [...(modelData.v.x ? [0] : []), ...(modelData.v.y ? [1] : []), ...(modelData.v.z ? [2] : [])]
+            components: [cuboid, planeTransform, planeMaterial, planePicker]
 
-            components: [
-                CuboidMesh {
-                    id: cuboid
-                    readonly property real squareSize: root.size * 0.3
-                    readonly property real squareThickness: root.beamRadius * 0.5
-                    enabled: root.visible
-                    xExtent: modelData.v.x ? squareSize : squareThickness
-                    yExtent: modelData.v.y ? squareSize : squareThickness
-                    zExtent: modelData.v.z ? squareSize : squareThickness
-                },
-                Transform {
-                    translation: modelData.v.times(root.beamRadius + root.size * 0.025 + cuboid.squareSize / 2)
-                },
-                PhongMaterial {
-                    ambient: plane.hilighted ? Qt.lighter(plane.color, root.hoverHilightFactor) : plane.color
-                },
-                ObjectPicker {
-                    id: planePicker
-                    hoverEnabled: true
-                    onEntered: root.trackUIElement(modelData.name, true)
-                    onExited: root.trackUIElement(modelData.name, false)
-                }
-            ]
+            CuboidMesh {
+                id: cuboid
+                readonly property real squareSize: root.size * 0.3
+                readonly property real squareThickness: root.beamRadius * 0.5
+                enabled: root.visible
+                xExtent: modelData.v.x ? squareSize : squareThickness
+                yExtent: modelData.v.y ? squareSize : squareThickness
+                zExtent: modelData.v.z ? squareSize : squareThickness
+            }
+
+            Transform {
+                id: planeTransform
+                translation: modelData.v.times(root.beamRadius + root.size * 0.025 + cuboid.squareSize / 2)
+            }
+
+            PhongMaterial {
+                id: planeMaterial
+                ambient: plane.hilighted ? Qt.lighter(plane.color, root.hoverHilightFactor) : plane.color
+            }
+
+            ObjectPicker {
+                id: planePicker
+                hoverEnabled: true
+                onEntered: root.trackUIElement(modelData.name, true)
+                onExited: root.trackUIElement(modelData.name, false)
+            }
         }
     }
 }
