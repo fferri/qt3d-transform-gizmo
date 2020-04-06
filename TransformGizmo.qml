@@ -202,7 +202,8 @@ Entity {
         objectName: "modeSwitcher"
         readonly property color color: "#333"
         readonly property bool hover: root.hoverElement == objectName
-        readonly property bool hilighted: root.activeElement === "" && hover
+        readonly property bool active: root.activeElement === objectName
+        readonly property bool hilighted: active || (root.activeElement === "" && hover)
         components: [
             SphereMesh {
                 id: modeSwitcherSphere
