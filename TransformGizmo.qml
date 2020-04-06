@@ -44,60 +44,64 @@ Entity {
         id: ownTransform
     }
 
+    MouseDevice {
+        id: mouseDev
+    }
+
+    MouseHandler {
+        sourceDevice: mouseDev
+        property point lastPos
+        onPressed: {
+            if(hoverElement === "") return
+            lastPos = Qt.point(mouse.x, mouse.y)
+            cameraController.enabled = false
+            activeElement = hoverElement
+        }
+        onPositionChanged: {
+            if(activeElement === "") return
+            var dx = mouse.x - lastPos.x
+            var dy = mouse.y - lastPos.y
+            switch(activeElement) {
+            case "beamX":
+            case "beamY":
+            case "beamZ":
+                var x = activeElement === "beamX"
+                var y = activeElement === "beamY"
+                var z = activeElement === "beamZ"
+                switch(mode) {
+                case TransformGizmo.Mode.Translation: translate(x * dy, y * dy, z * dy); break
+                case TransformGizmo.Mode.Rotation: rotate(x * dy, y * dy, z * dy); break
+                case TransformGizmo.Mode.Scale: scale(x * dy, y * dy, z * dy); break
+                }
+                break;
+            case "planeXY": translate(dx, dy, 0); break
+            case "planeXZ": translate(dx, 0, dy); break
+            case "planeYZ": translate(0, dx, dy); break
+            }
+            lastPos = Qt.point(mouse.x, mouse.y)
+        }
+        onReleased: {
+            if(activeElement === "") return
+            cameraController.enabled = true
+            activeElement = ""
+        }
+    }
+
     components: [ownTransform, layer]
 
     property var hoverElements: new Set()
     property var hoverElement: ""
     property var activeElement: ""
 
-    onHoverElementChanged: console.log(hoverElement)
+    function trackUIElement(elementName, active) {
+        if(active) hoverElements.add(elementName)
+        else hoverElements.delete(elementName)
 
-    function enteredUIElement(elementName) {
-        hoverElements.add(elementName)
-        hoverElement = computeHoverElement()
-    }
-
-    function exitedUIElement(elementName) {
-        hoverElements.delete(elementName)
-        hoverElement = computeHoverElement()
-    }
-
-    function computeHoverElement() {
+        var newHoverElement = ""
         for(var x of ["modeSwitcher", "beamX", "beamY", "beamZ", "planeXY", "planeXZ", "planeYZ"])
-            if(hoverElements.has(x))
-                return x
-        return ""
-    }
-
-    function dragStart() {
-        cameraController.enabled = false
-        activeElement = hoverElement
-    }
-
-    function drag(dx, dy) {
-        switch(activeElement) {
-        case "beamX":
-        case "beamY":
-        case "beamZ":
-            var x = activeElement === "beamX"
-            var y = activeElement === "beamY"
-            var z = activeElement === "beamZ"
-            switch(mode) {
-            case TransformGizmo.Mode.Translation: translate(x * dy, y * dy, z * dy); break
-            case TransformGizmo.Mode.Rotation: rotate(x * dy, y * dy, z * dy); break
-            case TransformGizmo.Mode.Scale: scale(x * dy, y * dy, z * dy); break
-            }
-            break;
-        case "planeXY": translate(dx, dy, 0); break
-        case "planeXZ": translate(dx, 0, dy); break
-        case "planeYZ": translate(0, dx, dy); break
-        }
-
-    }
-
-    function dragEnd() {
-        cameraController.enabled = true
-        activeElement = ""
+            if(newHoverElement === "" && hoverElements.has(x))
+                newHoverElement = x
+        hoverElement = newHoverElement
     }
 
     function getMatrix(entity) {
@@ -193,32 +197,29 @@ Entity {
         targetTransform.scale3D.z += linearSpeed * dz
     }
 
-    MouseDevice {
-        id: mouseDev
-    }
-
     Entity {
         id: modeSwitcher
         objectName: "modeSwitcher"
         readonly property color color: "#333"
         readonly property bool hover: root.hoverElement == objectName
+        readonly property bool hilighted: root.activeElement === "" && hover
         components: [
             SphereMesh {
                 id: modeSwitcherSphere
                 readonly property real radius0: beamRadius * 2
                 readonly property real radius1: root.hoverZoomFactor * radius0
-                radius: modeSwitcher.hover ? radius1 : radius0
+                radius: modeSwitcher.hilighted ? radius1 : radius0
                 enabled: root.visible
             },
             PhongMaterial {
-                ambient: modeSwitcher.hover ? Qt.lighter(modeSwitcher.color, root.hoverHilightFactor) : modeSwitcher.color
+                ambient: modeSwitcher.hilighted ? Qt.lighter(modeSwitcher.color, root.hoverHilightFactor) : modeSwitcher.color
             },
             ObjectPicker {
                 id: modeSwitcherPicker
                 hoverEnabled: true
                 onClicked: mode = (modes.indexOf(mode) + 1) % modes.length
-                onEntered: root.enteredUIElement(modeSwitcher.objectName)
-                onExited: root.exitedUIElement(modeSwitcher.objectName)
+                onEntered: root.trackUIElement(modeSwitcher.objectName, true)
+                onExited: root.trackUIElement(modeSwitcher.objectName, false)
             }
         ]
     }
@@ -253,17 +254,8 @@ Entity {
                 ObjectPicker {
                     id: beamPicker
                     hoverEnabled: true
-                    dragEnabled: true
-                    onPressed: { beam.dragging = true; root.dragStart() }
-                    onEntered: root.enteredUIElement(modelData.name)
-                    onExited: root.exitedUIElement(modelData.name)
-                    MouseHandler {
-                        sourceDevice: mouseDev
-                        property point lastPos
-                        onPressed: lastPos = Qt.point(mouse.x, mouse.y)
-                        onPositionChanged: { if(beam.dragging) root.drag(mouse.x - lastPos.x, mouse.y - lastPos.y); lastPos = Qt.point(mouse.x, mouse.y) }
-                        onReleased: { if(beam.dragging) { beam.dragging = false; root.dragEnd() } }
-                    }
+                    onEntered: root.trackUIElement(modelData.name, true)
+                    onExited: root.trackUIElement(modelData.name, false)
                 }
 
                 PhongMaterial {
@@ -380,17 +372,8 @@ Entity {
                 ObjectPicker {
                     id: planePicker
                     hoverEnabled: true
-                    dragEnabled: true
-                    onPressed: { plane.dragging = true; root.dragStart() }
-                    onEntered: root.enteredUIElement(modelData.name)
-                    onExited: root.exitedUIElement(modelData.name)
-                    MouseHandler {
-                        sourceDevice: mouseDev
-                        property point lastPos
-                        onPressed: lastPos = Qt.point(mouse.x, mouse.y)
-                        onPositionChanged: { if(plane.dragging) root.drag(mouse.x - lastPos.x, mouse.y - lastPos.y); lastPos = Qt.point(mouse.x, mouse.y) }
-                        onReleased: { if(plane.dragging) { plane.dragging = false; root.dragEnd() } }
-                    }
+                    onEntered: root.trackUIElement(modelData.name, true)
+                    onExited: root.trackUIElement(modelData.name, false)
                 }
             ]
         }
