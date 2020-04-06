@@ -49,53 +49,6 @@ Entity {
         PlaneYZ
     }
 
-    Transform {
-        id: ownTransform
-    }
-
-    MouseDevice {
-        id: mouseDev
-    }
-
-    MouseHandler {
-        sourceDevice: mouseDev
-        property point lastPos
-        onPressed: {
-            if(hoverElement === TransformGizmo.UIElement.None) return
-            lastPos = Qt.point(mouse.x, mouse.y)
-            if(cameraController) cameraController.enabled = false
-            activeElement = hoverElement
-        }
-        onPositionChanged: {
-            if(activeElement === TransformGizmo.UIElement.None) return
-            var dx = mouse.x - lastPos.x
-            var dy = mouse.y - lastPos.y
-            switch(activeElement) {
-            case TransformGizmo.UIElement.BeamX:
-            case TransformGizmo.UIElement.BeamY:
-            case TransformGizmo.UIElement.BeamZ:
-                var x = activeElement === TransformGizmo.UIElement.BeamX
-                var y = activeElement === TransformGizmo.UIElement.BeamY
-                var z = activeElement === TransformGizmo.UIElement.BeamZ
-                switch(mode) {
-                case TransformGizmo.Mode.Translation: translate(x * dy, y * dy, z * dy); break
-                case TransformGizmo.Mode.Rotation: rotate(x * dy, y * dy, z * dy); break
-                case TransformGizmo.Mode.Scale: scale(x * dy, y * dy, z * dy); break
-                }
-                break;
-            case TransformGizmo.UIElement.PlaneXY: translate(dx, dy, 0); break
-            case TransformGizmo.UIElement.PlaneXZ: translate(dx, 0, dy); break
-            case TransformGizmo.UIElement.PlaneYZ: translate(0, dx, dy); break
-            }
-            lastPos = Qt.point(mouse.x, mouse.y)
-        }
-        onReleased: {
-            if(activeElement === TransformGizmo.UIElement.None) return
-            if(cameraController) cameraController.enabled = true
-            activeElement = TransformGizmo.UIElement.None
-        }
-    }
-
     // called by ObjectPickers of individual UI elements:
     function trackUIElement(element, active) {
         if(active) hoverElements.add(element)
@@ -200,6 +153,53 @@ Entity {
         targetTransform.scale3D.x += linearSpeed * dx
         targetTransform.scale3D.y += linearSpeed * dy
         targetTransform.scale3D.z += linearSpeed * dz
+    }
+
+    Transform {
+        id: ownTransform
+    }
+
+    MouseDevice {
+        id: mouseDev
+    }
+
+    MouseHandler {
+        sourceDevice: mouseDev
+        property point lastPos
+        onPressed: {
+            if(hoverElement === TransformGizmo.UIElement.None) return
+            lastPos = Qt.point(mouse.x, mouse.y)
+            if(cameraController) cameraController.enabled = false
+            activeElement = hoverElement
+        }
+        onPositionChanged: {
+            if(activeElement === TransformGizmo.UIElement.None) return
+            var dx = mouse.x - lastPos.x
+            var dy = mouse.y - lastPos.y
+            switch(activeElement) {
+            case TransformGizmo.UIElement.BeamX:
+            case TransformGizmo.UIElement.BeamY:
+            case TransformGizmo.UIElement.BeamZ:
+                var x = activeElement === TransformGizmo.UIElement.BeamX
+                var y = activeElement === TransformGizmo.UIElement.BeamY
+                var z = activeElement === TransformGizmo.UIElement.BeamZ
+                switch(mode) {
+                case TransformGizmo.Mode.Translation: translate(x * dy, y * dy, z * dy); break
+                case TransformGizmo.Mode.Rotation: rotate(x * dy, y * dy, z * dy); break
+                case TransformGizmo.Mode.Scale: scale(x * dy, y * dy, z * dy); break
+                }
+                break;
+            case TransformGizmo.UIElement.PlaneXY: translate(dx, dy, 0); break
+            case TransformGizmo.UIElement.PlaneXZ: translate(dx, 0, dy); break
+            case TransformGizmo.UIElement.PlaneYZ: translate(0, dx, dy); break
+            }
+            lastPos = Qt.point(mouse.x, mouse.y)
+        }
+        onReleased: {
+            if(activeElement === TransformGizmo.UIElement.None) return
+            if(cameraController) cameraController.enabled = true
+            activeElement = TransformGizmo.UIElement.None
+        }
     }
 
     QQ2.Loader {
