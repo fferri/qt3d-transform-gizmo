@@ -21,6 +21,8 @@ Entity {
     property real angularSpeed: 2.0
     property bool visible: false
     property vector3d absolutePosition: Qt.vector3d(0, 0, 0)
+    property real hoverHilightFactor: 1.44
+    property real hoverZoomFactor: 1.5
 
     enum Mode {
         Translation,
@@ -143,16 +145,21 @@ Entity {
 
     Entity {
         id: modeSwitcher
+        readonly property color color: "#333"
         components: [
             SphereMesh {
                 id: modeSwitcherSphere
-                radius: beamRadius * 2
-                enabled: visible
+                readonly property real radius0: beamRadius * 2
+                readonly property real radius1: root.hoverZoomFactor * radius0
+                radius: modeSwitcherPicker.containsMouse ? radius1 : radius0
+                enabled: root.visible
             },
             PhongMaterial {
-                diffuse: "#999"
+                ambient: modeSwitcherPicker.containsMouse ? Qt.lighter(modeSwitcher.color, root.hoverHilightFactor) : modeSwitcher.color
             },
             ObjectPicker {
+                id: modeSwitcherPicker
+                hoverEnabled: true
                 onClicked: mode = (modes.indexOf(mode) + 1) % modes.length
             }
         ]
@@ -168,7 +175,7 @@ Entity {
         delegate: Entity {
             components: [
                 Transform {
-                    translation: Qt.vector3d(modelData.x, modelData.y, modelData.z).times(modeSwitcherSphere.radius * 1.1)
+                    translation: Qt.vector3d(modelData.x, modelData.y, modelData.z).times(modeSwitcherSphere.radius0 * 1.1)
                     rotationX: modelData.rx
                     rotationY: modelData.ry
                     rotationZ: modelData.rz
@@ -177,7 +184,7 @@ Entity {
 
             Entity {
                 id: beam
-                readonly property string color: modelData.color
+                readonly property color color: modelData.color
                 property bool dragging: false
 
                 function dragStart() {
@@ -214,7 +221,7 @@ Entity {
 
                 PhongMaterial {
                     id: beamMaterial
-                    ambient: beam.dragging || beamPicker.containsMouse ? Qt.lighter(beam.color, 1.44) : beam.color
+                    ambient: beam.dragging || beamPicker.containsMouse ? Qt.lighter(beam.color, root.hoverHilightFactor) : beam.color
                 }
 
                 Entity {
@@ -295,7 +302,7 @@ Entity {
         ]
         delegate: Entity {
             id: plane
-            readonly property string color: "#ff6"
+            readonly property color color: "#dd6"
             readonly property bool x: modelData.x
             readonly property bool y: modelData.y
             readonly property bool z: modelData.z
@@ -330,7 +337,7 @@ Entity {
                     translation: Qt.vector3d(plane.x ? d : 0, plane.y ? d : 0, plane.z ? d : 0)
                 },
                 PhongMaterial {
-                    ambient: plane.dragging || planePicker.containsMouse ? Qt.lighter(plane.color, 1.44) : plane.color
+                    ambient: plane.dragging || planePicker.containsMouse ? Qt.lighter(plane.color, root.hoverHilightFactor) : plane.color
                 },
                 ObjectPicker {
                     id: planePicker
