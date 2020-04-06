@@ -46,6 +46,60 @@ Entity {
 
     components: [ownTransform, layer]
 
+    property var hoverElements: new Set()
+    property var hoverElement: ""
+    property var activeElement: ""
+
+    onHoverElementChanged: console.log(hoverElement)
+
+    function enteredUIElement(elementName) {
+        hoverElements.add(elementName)
+        hoverElement = computeHoverElement()
+    }
+
+    function exitedUIElement(elementName) {
+        hoverElements.delete(elementName)
+        hoverElement = computeHoverElement()
+    }
+
+    function computeHoverElement() {
+        for(var x of ["modeSwitcher", "beamX", "beamY", "beamZ", "planeXY", "planeXZ", "planeYZ"])
+            if(hoverElements.has(x))
+                return x
+        return ""
+    }
+
+    function dragStart() {
+        cameraController.enabled = false
+        activeElement = hoverElement
+    }
+
+    function drag(dx, dy) {
+        switch(activeElement) {
+        case "beamX":
+        case "beamY":
+        case "beamZ":
+            var x = activeElement === "beamX"
+            var y = activeElement === "beamY"
+            var z = activeElement === "beamZ"
+            switch(mode) {
+            case TransformGizmo.Mode.Translation: translate(x * dy, y * dy, z * dy); break
+            case TransformGizmo.Mode.Rotation: rotate(x * dy, y * dy, z * dy); break
+            case TransformGizmo.Mode.Scale: scale(x * dy, y * dy, z * dy); break
+            }
+            break;
+        case "planeXY": translate(dx, dy, 0); break
+        case "planeXZ": translate(dx, 0, dy); break
+        case "planeYZ": translate(0, dx, dy); break
+        }
+
+    }
+
+    function dragEnd() {
+        cameraController.enabled = true
+        activeElement = ""
+    }
+
     function getMatrix(entity) {
         var t = getTransform(entity)
         if(t) return t.matrix
@@ -145,22 +199,26 @@ Entity {
 
     Entity {
         id: modeSwitcher
+        objectName: "modeSwitcher"
         readonly property color color: "#333"
+        readonly property bool hover: root.hoverElement == objectName
         components: [
             SphereMesh {
                 id: modeSwitcherSphere
                 readonly property real radius0: beamRadius * 2
                 readonly property real radius1: root.hoverZoomFactor * radius0
-                radius: modeSwitcherPicker.containsMouse ? radius1 : radius0
+                radius: modeSwitcher.hover ? radius1 : radius0
                 enabled: root.visible
             },
             PhongMaterial {
-                ambient: modeSwitcherPicker.containsMouse ? Qt.lighter(modeSwitcher.color, root.hoverHilightFactor) : modeSwitcher.color
+                ambient: modeSwitcher.hover ? Qt.lighter(modeSwitcher.color, root.hoverHilightFactor) : modeSwitcher.color
             },
             ObjectPicker {
                 id: modeSwitcherPicker
                 hoverEnabled: true
                 onClicked: mode = (modes.indexOf(mode) + 1) % modes.length
+                onEntered: root.enteredUIElement(modeSwitcher.objectName)
+                onExited: root.exitedUIElement(modeSwitcher.objectName)
             }
         ]
     }
@@ -168,9 +226,9 @@ Entity {
     NodeInstantiator {
         id: beams
         model: [
-            {rx:  0, ry: 0, rz: -90, x: 1, y: 0, z: 0, color: "#f33"},
-            {rx:  0, ry: 0, rz:   0, x: 0, y: 1, z: 0, color: "#3f3"},
-            {rx: 90, ry: 0, rz:   0, x: 0, y: 0, z: 1, color: "#33f"}
+            {rx:  0, ry: 0, rz: -90, x: 1, y: 0, z: 0, color: "#f33", name: "beamX"},
+            {rx:  0, ry: 0, rz:   0, x: 0, y: 1, z: 0, color: "#3f3", name: "beamY"},
+            {rx: 90, ry: 0, rz:   0, x: 0, y: 0, z: 1, color: "#33f", name: "beamZ"}
         ]
         delegate: Entity {
             components: [
@@ -184,24 +242,11 @@ Entity {
 
             Entity {
                 id: beam
+                readonly property bool hover: root.hoverElement === modelData.name
+                readonly property bool active: root.activeElement === modelData.name
+                readonly property bool hilighted: active || (root.activeElement === "" && hover)
                 readonly property color color: modelData.color
                 property bool dragging: false
-
-                function dragStart() {
-                    cameraController.enabled = false
-                }
-
-                function drag(dx, dy) {
-                    switch(mode) {
-                    case TransformGizmo.Mode.Translation: translate(modelData.x * dy, modelData.y * dy, modelData.z * dy); break
-                    case TransformGizmo.Mode.Rotation: rotate(modelData.x * dy, modelData.y * dy, modelData.z * dy); break
-                    case TransformGizmo.Mode.Scale: scale(modelData.x * dy, modelData.y * dy, modelData.z * dy); break
-                    }
-                }
-
-                function dragEnd() {
-                    cameraController.enabled = true
-                }
 
                 components: [beamPicker]
 
@@ -209,19 +254,21 @@ Entity {
                     id: beamPicker
                     hoverEnabled: true
                     dragEnabled: true
-                    onPressed: { beam.dragging = true; beam.dragStart() }
+                    onPressed: { beam.dragging = true; root.dragStart() }
+                    onEntered: root.enteredUIElement(modelData.name)
+                    onExited: root.exitedUIElement(modelData.name)
                     MouseHandler {
                         sourceDevice: mouseDev
                         property point lastPos
                         onPressed: lastPos = Qt.point(mouse.x, mouse.y)
-                        onPositionChanged: { if(beam.dragging) beam.drag(mouse.x - lastPos.x, mouse.y - lastPos.y); lastPos = Qt.point(mouse.x, mouse.y) }
-                        onReleased: { if(beam.dragging) { beam.dragging = false; beam.dragEnd() } }
+                        onPositionChanged: { if(beam.dragging) root.drag(mouse.x - lastPos.x, mouse.y - lastPos.y); lastPos = Qt.point(mouse.x, mouse.y) }
+                        onReleased: { if(beam.dragging) { beam.dragging = false; root.dragEnd() } }
                     }
                 }
 
                 PhongMaterial {
                     id: beamMaterial
-                    ambient: beam.dragging || beamPicker.containsMouse ? Qt.lighter(beam.color, root.hoverHilightFactor) : beam.color
+                    ambient: beam.hilighted ? Qt.lighter(beam.color, root.hoverHilightFactor) : beam.color
                 }
 
                 Entity {
@@ -296,30 +343,21 @@ Entity {
     NodeInstantiator {
         id: planes
         model: [
-            {x: 1, y: 1, z: 0},
-            {x: 1, y: 0, z: 1},
-            {x: 0, y: 1, z: 1},
+            {x: 1, y: 1, z: 0, name: "planeXY"},
+            {x: 1, y: 0, z: 1, name: "planeXZ"},
+            {x: 0, y: 1, z: 1, name: "planeYZ"},
         ]
         delegate: Entity {
             id: plane
+            readonly property bool hover: root.hoverElement === modelData.name
+            readonly property bool active: root.activeElement === modelData.name
+            readonly property bool hilighted: active || (root.activeElement === "" && hover)
             readonly property color color: "#dd6"
             readonly property bool x: modelData.x
             readonly property bool y: modelData.y
             readonly property bool z: modelData.z
             readonly property var axes: [...(x ? [0] : []), ...(y ? [1] : []), ...(z ? [2] : [])]
             property bool dragging: false
-
-            function dragStart() {
-                cameraController.enabled = false
-            }
-
-            function drag(dx, dy) {
-                translate(plane.x * dx, plane.y * (plane.axes[1] === 1 ? dy : dx), plane.z * dy)
-            }
-
-            function dragEnd() {
-                cameraController.enabled = true
-            }
 
             components: [
                 CuboidMesh {
@@ -337,19 +375,21 @@ Entity {
                     translation: Qt.vector3d(plane.x ? d : 0, plane.y ? d : 0, plane.z ? d : 0)
                 },
                 PhongMaterial {
-                    ambient: plane.dragging || planePicker.containsMouse ? Qt.lighter(plane.color, root.hoverHilightFactor) : plane.color
+                    ambient: plane.hilighted ? Qt.lighter(plane.color, root.hoverHilightFactor) : plane.color
                 },
                 ObjectPicker {
                     id: planePicker
                     hoverEnabled: true
                     dragEnabled: true
-                    onPressed: { plane.dragging = true; plane.dragStart() }
+                    onPressed: { plane.dragging = true; root.dragStart() }
+                    onEntered: root.enteredUIElement(modelData.name)
+                    onExited: root.exitedUIElement(modelData.name)
                     MouseHandler {
                         sourceDevice: mouseDev
                         property point lastPos
                         onPressed: lastPos = Qt.point(mouse.x, mouse.y)
-                        onPositionChanged: { if(plane.dragging) plane.drag(mouse.x - lastPos.x, mouse.y - lastPos.y); lastPos = Qt.point(mouse.x, mouse.y) }
-                        onReleased: { if(plane.dragging) { plane.dragging = false; plane.dragEnd() } }
+                        onPositionChanged: { if(plane.dragging) root.drag(mouse.x - lastPos.x, mouse.y - lastPos.y); lastPos = Qt.point(mouse.x, mouse.y) }
+                        onReleased: { if(plane.dragging) { plane.dragging = false; root.dragEnd() } }
                     }
                 }
             ]
