@@ -54,7 +54,7 @@ Entity {
         onPressed: {
             if(hoverElement === "") return
             lastPos = Qt.point(mouse.x, mouse.y)
-            cameraController.enabled = false
+            if(cameraController) cameraController.enabled = false
             activeElement = hoverElement
         }
         onPositionChanged: {
@@ -82,7 +82,7 @@ Entity {
         }
         onReleased: {
             if(activeElement === "") return
-            cameraController.enabled = true
+            if(cameraController) cameraController.enabled = true
             activeElement = ""
         }
     }
