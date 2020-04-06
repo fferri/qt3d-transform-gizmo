@@ -28,14 +28,25 @@ Entity {
     property bool canRotate: true
     property bool canScale: false
     property var hoverElements: new Set()
-    property var hoverElement: ""
-    property var activeElement: ""
+    property var hoverElement: TransformGizmo.UIElement.None
+    property var activeElement: TransformGizmo.UIElement.None
     components: [ownTransform, layer]
 
     enum Mode {
         Translation,
         Rotation,
         Scale
+    }
+
+    enum UIElement {
+        None,
+        ModeSwitcher,
+        BeamX,
+        BeamY,
+        BeamZ,
+        PlaneXY,
+        PlaneXZ,
+        PlaneYZ
     }
 
     Transform {
@@ -50,49 +61,49 @@ Entity {
         sourceDevice: mouseDev
         property point lastPos
         onPressed: {
-            if(hoverElement === "") return
+            if(hoverElement === TransformGizmo.UIElement.None) return
             lastPos = Qt.point(mouse.x, mouse.y)
             if(cameraController) cameraController.enabled = false
             activeElement = hoverElement
         }
         onPositionChanged: {
-            if(activeElement === "") return
+            if(activeElement === TransformGizmo.UIElement.None) return
             var dx = mouse.x - lastPos.x
             var dy = mouse.y - lastPos.y
             switch(activeElement) {
-            case "beamX":
-            case "beamY":
-            case "beamZ":
-                var x = activeElement === "beamX"
-                var y = activeElement === "beamY"
-                var z = activeElement === "beamZ"
+            case TransformGizmo.UIElement.BeamX:
+            case TransformGizmo.UIElement.BeamY:
+            case TransformGizmo.UIElement.BeamZ:
+                var x = activeElement === TransformGizmo.UIElement.BeamX
+                var y = activeElement === TransformGizmo.UIElement.BeamY
+                var z = activeElement === TransformGizmo.UIElement.BeamZ
                 switch(mode) {
                 case TransformGizmo.Mode.Translation: translate(x * dy, y * dy, z * dy); break
                 case TransformGizmo.Mode.Rotation: rotate(x * dy, y * dy, z * dy); break
                 case TransformGizmo.Mode.Scale: scale(x * dy, y * dy, z * dy); break
                 }
                 break;
-            case "planeXY": translate(dx, dy, 0); break
-            case "planeXZ": translate(dx, 0, dy); break
-            case "planeYZ": translate(0, dx, dy); break
+            case TransformGizmo.UIElement.PlaneXY: translate(dx, dy, 0); break
+            case TransformGizmo.UIElement.PlaneXZ: translate(dx, 0, dy); break
+            case TransformGizmo.UIElement.PlaneYZ: translate(0, dx, dy); break
             }
             lastPos = Qt.point(mouse.x, mouse.y)
         }
         onReleased: {
-            if(activeElement === "") return
+            if(activeElement === TransformGizmo.UIElement.None) return
             if(cameraController) cameraController.enabled = true
-            activeElement = ""
+            activeElement = TransformGizmo.UIElement.None
         }
     }
 
     // called by ObjectPickers of individual UI elements:
-    function trackUIElement(elementName, active) {
-        if(active) hoverElements.add(elementName)
-        else hoverElements.delete(elementName)
+    function trackUIElement(element, active) {
+        if(active) hoverElements.add(element)
+        else hoverElements.delete(element)
 
-        var newHoverElement = ""
-        for(var x of ["modeSwitcher", "beamX", "beamY", "beamZ", "planeXY", "planeXZ", "planeYZ"])
-            if(newHoverElement === "" && hoverElements.has(x))
+        var newHoverElement = TransformGizmo.UIElement.None
+        for(var x of [TransformGizmo.UIElement.ModeSwitcher, TransformGizmo.UIElement.BeamX, TransformGizmo.UIElement.BeamY, TransformGizmo.UIElement.BeamZ, TransformGizmo.UIElement.PlaneXY, TransformGizmo.UIElement.PlaneXZ, TransformGizmo.UIElement.PlaneYZ])
+            if(newHoverElement === TransformGizmo.UIElement.None && hoverElements.has(x))
                 newHoverElement = x
         hoverElement = newHoverElement
     }
@@ -201,11 +212,10 @@ Entity {
 
     Entity {
         id: modeSwitcher
-        objectName: "modeSwitcher"
         readonly property color color: "#333"
-        readonly property bool hover: root.hoverElement == objectName
-        readonly property bool active: root.activeElement === objectName
-        readonly property bool hilighted: active || (root.activeElement === "" && hover)
+        readonly property bool hover: root.hoverElement === TransformGizmo.UIElement.ModeSwitcher
+        readonly property bool active: root.activeElement === TransformGizmo.UIElement.ModeSwitcher
+        readonly property bool hilighted: active || (root.activeElement === TransformGizmo.UIElement.None && hover)
         components: [modeSwitcherSphere, modeSwitcherMaterial, modeSwitcherPicker]
 
         SphereMesh {
@@ -225,17 +235,17 @@ Entity {
             id: modeSwitcherPicker
             hoverEnabled: true
             onClicked: root.switchMode()
-            onEntered: root.trackUIElement(modeSwitcher.objectName, true)
-            onExited: root.trackUIElement(modeSwitcher.objectName, false)
+            onEntered: root.trackUIElement(TransformGizmo.UIElement.ModeSwitcher, true)
+            onExited: root.trackUIElement(TransformGizmo.UIElement.ModeSwitcher, false)
         }
     }
 
     NodeInstantiator {
         id: beams
         model: [
-            {r: Qt.vector3d( 0, 0, -90), v: Qt.vector3d(1, 0, 0), color: "#f33", name: "beamX"},
-            {r: Qt.vector3d( 0, 0,   0), v: Qt.vector3d(0, 1, 0), color: "#3f3", name: "beamY"},
-            {r: Qt.vector3d(90, 0,   0), v: Qt.vector3d(0, 0, 1), color: "#33f", name: "beamZ"}
+            {r: Qt.vector3d( 0, 0, -90), v: Qt.vector3d(1, 0, 0), color: "#f33", element: TransformGizmo.UIElement.BeamX},
+            {r: Qt.vector3d( 0, 0,   0), v: Qt.vector3d(0, 1, 0), color: "#3f3", element: TransformGizmo.UIElement.BeamY},
+            {r: Qt.vector3d(90, 0,   0), v: Qt.vector3d(0, 0, 1), color: "#33f", element: TransformGizmo.UIElement.BeamZ}
         ]
         delegate: Entity {
             components: [beamTransform]
@@ -250,17 +260,17 @@ Entity {
 
             Entity {
                 id: beam
-                readonly property bool hover: root.hoverElement === modelData.name
-                readonly property bool active: root.activeElement === modelData.name
-                readonly property bool hilighted: active || (root.activeElement === "" && hover)
+                readonly property bool hover: root.hoverElement === modelData.element
+                readonly property bool active: root.activeElement === modelData.element
+                readonly property bool hilighted: active || (root.activeElement === TransformGizmo.UIElement.None && hover)
                 readonly property color color: modelData.color
                 components: [beamPicker]
 
                 ObjectPicker {
                     id: beamPicker
                     hoverEnabled: true
-                    onEntered: root.trackUIElement(modelData.name, true)
-                    onExited: root.trackUIElement(modelData.name, false)
+                    onEntered: root.trackUIElement(modelData.element, true)
+                    onExited: root.trackUIElement(modelData.element, false)
                 }
 
                 PhongMaterial {
@@ -340,15 +350,15 @@ Entity {
     NodeInstantiator {
         id: planes
         model: [
-            {v: Qt.vector3d(1, 1, 0), name: "planeXY"},
-            {v: Qt.vector3d(1, 0, 1), name: "planeXZ"},
-            {v: Qt.vector3d(0, 1, 1), name: "planeYZ"},
+            {v: Qt.vector3d(1, 1, 0), element: TransformGizmo.UIElement.PlaneXY},
+            {v: Qt.vector3d(1, 0, 1), element: TransformGizmo.UIElement.PlaneXZ},
+            {v: Qt.vector3d(0, 1, 1), element: TransformGizmo.UIElement.PlaneYZ},
         ]
         delegate: Entity {
             id: plane
-            readonly property bool hover: root.hoverElement === modelData.name
-            readonly property bool active: root.activeElement === modelData.name
-            readonly property bool hilighted: active || (root.activeElement === "" && hover)
+            readonly property bool hover: root.hoverElement === modelData.element
+            readonly property bool active: root.activeElement === modelData.element
+            readonly property bool hilighted: active || (root.activeElement === TransformGizmo.UIElement.None && hover)
             readonly property color color: "#dd6"
             readonly property var axes: [...(modelData.v.x ? [0] : []), ...(modelData.v.y ? [1] : []), ...(modelData.v.z ? [2] : [])]
             components: [cuboid, planeTransform, planeMaterial, planePicker]
@@ -376,8 +386,8 @@ Entity {
             ObjectPicker {
                 id: planePicker
                 hoverEnabled: true
-                onEntered: root.trackUIElement(modelData.name, true)
-                onExited: root.trackUIElement(modelData.name, false)
+                onEntered: root.trackUIElement(modelData.element, true)
+                onExited: root.trackUIElement(modelData.element, false)
             }
         }
     }
