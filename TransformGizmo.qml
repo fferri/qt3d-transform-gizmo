@@ -118,23 +118,27 @@ Entity {
 
     function translate(dx, dy, dz) {
         if(!targetTransform) return
-        targetTransform.translation.x += dx
-        targetTransform.translation.y += dy
-        targetTransform.translation.z += dz
+        targetTransform.translation.x += linearSpeed * dx
+        targetTransform.translation.y += linearSpeed * dy
+        targetTransform.translation.z += linearSpeed * dz
     }
 
     function rotate(dx, dy, dz) {
         if(!targetTransform) return
-        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(dx, 1, 0, 0), targetTransform.rotation)
-        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(dy, 0, 1, 0), targetTransform.rotation)
-        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(dz, 0, 0, 1), targetTransform.rotation)
+        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(angularSpeed * dx, 1, 0, 0), targetTransform.rotation)
+        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(angularSpeed * dy, 0, 1, 0), targetTransform.rotation)
+        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(angularSpeed * dz, 0, 0, 1), targetTransform.rotation)
     }
 
     function scale(dx, dy, dz) {
         if(!targetTransform) return
-        targetTransform.scale3D.x += dx
-        targetTransform.scale3D.y += dy
-        targetTransform.scale3D.z += dz
+        targetTransform.scale3D.x += linearSpeed * dx
+        targetTransform.scale3D.y += linearSpeed * dy
+        targetTransform.scale3D.z += linearSpeed * dz
+    }
+
+    MouseDevice {
+        id: mouseDev
     }
 
     Entity {
@@ -170,19 +174,114 @@ Entity {
                     rotationZ: modelData.rz
                 }
             ]
-            TransformGizmoBeam {
-                visible: root.visible
-                gizmo: root
-                color: modelData.color
-                onDragStart: cameraController.enabled = false
-                onDrag: {
+
+            Entity {
+                id: beam
+                readonly property string color: modelData.color
+                property bool dragging: false
+
+                function dragStart() {
+                    cameraController.enabled = false
+                }
+
+                function drag(dx, dy) {
                     switch(mode) {
-                    case TransformGizmo.Mode.Translation: translate(modelData.x * linearSpeed * dy, modelData.y * linearSpeed * dy, modelData.z * linearSpeed * dy); break
-                    case TransformGizmo.Mode.Rotation: rotate(modelData.x * angularSpeed * dy, modelData.y * angularSpeed * dy, modelData.z * angularSpeed * dy); break
-                    case TransformGizmo.Mode.Scale: scale(modelData.x * linearSpeed * dy, modelData.y * linearSpeed * dy, modelData.z * linearSpeed * dy); break
+                    case TransformGizmo.Mode.Translation: translate(modelData.x * dy, modelData.y * dy, modelData.z * dy); break
+                    case TransformGizmo.Mode.Rotation: rotate(modelData.x * dy, modelData.y * dy, modelData.z * dy); break
+                    case TransformGizmo.Mode.Scale: scale(modelData.x * dy, modelData.y * dy, modelData.z * dy); break
                     }
                 }
-                onDragEnd: cameraController.enabled = true
+
+                function dragEnd() {
+                    cameraController.enabled = true
+                }
+
+                components: [beamPicker]
+
+                ObjectPicker {
+                    id: beamPicker
+                    hoverEnabled: true
+                    dragEnabled: true
+                    onPressed: { beam.dragging = true; beam.dragStart() }
+                    MouseHandler {
+                        sourceDevice: mouseDev
+                        property point lastPos
+                        onPressed: lastPos = Qt.point(mouse.x, mouse.y)
+                        onPositionChanged: { if(beam.dragging) beam.drag(mouse.x - lastPos.x, mouse.y - lastPos.y); lastPos = Qt.point(mouse.x, mouse.y) }
+                        onReleased: { if(beam.dragging) { beam.dragging = false; beam.dragEnd() } }
+                    }
+                }
+
+                PhongMaterial {
+                    id: beamMaterial
+                    ambient: beam.dragging || beamPicker.containsMouse ? Qt.lighter(beam.color, 1.44) : beam.color
+                }
+
+                Entity {
+                    CylinderMesh {
+                        id: lineMesh
+                        enabled: root.visible
+                        radius: root.beamRadius
+                        length: root.size * 0.8
+                    }
+
+                    Transform {
+                        id: lineTransform
+                        translation: Qt.vector3d(0, lineMesh.length / 2, 0)
+                    }
+
+                    components: [lineMesh, lineTransform, beamMaterial]
+                }
+
+                Entity {
+                    ConeMesh {
+                        id: translateMesh
+                        enabled: root.visible && root.mode === TransformGizmo.Mode.Translation
+                        bottomRadius: root.beamRadius * 2
+                        topRadius: 0
+                        length: root.size * 0.2
+                    }
+
+                    Transform {
+                        id: translateTransform
+                        translation: Qt.vector3d(0, lineMesh.length + translateMesh.length / 2, 0)
+                    }
+
+                    components: [translateMesh, translateTransform, beamMaterial]
+                }
+
+                Entity {
+                    CylinderMesh {
+                        id: rotateMesh
+                        enabled: root.visible && root.mode === TransformGizmo.Mode.Rotation
+                        radius: root.beamRadius * 2
+                        length: root.beamRadius * 2
+                    }
+
+                    Transform {
+                        id: rotateTransform
+                        translation: Qt.vector3d(0, lineMesh.length + rotateMesh.length / 2, 0)
+                    }
+
+                    components: [rotateMesh, rotateTransform, beamMaterial]
+                }
+
+                Entity {
+                    CuboidMesh {
+                        id: scaleMesh
+                        enabled: root.visible && root.mode === TransformGizmo.Mode.Scale
+                        xExtent: root.beamRadius * 3
+                        yExtent: root.beamRadius * 3
+                        zExtent: root.beamRadius * 3
+                    }
+
+                    Transform {
+                        id: scaleTransform
+                        translation: Qt.vector3d(0, lineMesh.length + scaleMesh.xExtent / 2, 0)
+                    }
+
+                    components: [scaleMesh, scaleTransform, beamMaterial]
+                }
             }
         }
     }
@@ -194,13 +293,59 @@ Entity {
             {x: 1, y: 0, z: 1},
             {x: 0, y: 1, z: 1},
         ]
-        delegate: TransformGizmoPlane {
-            visible: root.visible
-            gizmo: root
-            axes: [...(modelData.x ? [0] : []), ...(modelData.y ? [1] : []), ...(modelData.z ? [2] : [])]
-            onDragStart: cameraController.enabled = false
-            onDrag: translate(modelData.x * linearSpeed * dx, modelData.y * linearSpeed * (axes[1] === 1 ? dy : dx), modelData.z * linearSpeed * dy)
-            onDragEnd: cameraController.enabled = true
+        delegate: Entity {
+            id: plane
+            readonly property string color: "#ff6"
+            readonly property bool x: modelData.x
+            readonly property bool y: modelData.y
+            readonly property bool z: modelData.z
+            readonly property var axes: [...(x ? [0] : []), ...(y ? [1] : []), ...(z ? [2] : [])]
+            property bool dragging: false
+
+            function dragStart() {
+                cameraController.enabled = false
+            }
+
+            function drag(dx, dy) {
+                translate(plane.x * dx, plane.y * (plane.axes[1] === 1 ? dy : dx), plane.z * dy)
+            }
+
+            function dragEnd() {
+                cameraController.enabled = true
+            }
+
+            components: [
+                CuboidMesh {
+                    id: cuboid
+                    readonly property real squareSize: root.size * 0.3
+                    readonly property real squareThickness: root.beamRadius * 0.5
+                    enabled: root.visible
+                    xExtent: plane.x ? squareSize : squareThickness
+                    yExtent: plane.y ? squareSize : squareThickness
+                    zExtent: plane.z ? squareSize : squareThickness
+                },
+                Transform {
+                    readonly property real margin: root.size * 0.025
+                    readonly property real d: root.beamRadius + margin + cuboid.squareSize / 2
+                    translation: Qt.vector3d(plane.x ? d : 0, plane.y ? d : 0, plane.z ? d : 0)
+                },
+                PhongMaterial {
+                    ambient: plane.dragging || planePicker.containsMouse ? Qt.lighter(plane.color, 1.44) : plane.color
+                },
+                ObjectPicker {
+                    id: planePicker
+                    hoverEnabled: true
+                    dragEnabled: true
+                    onPressed: { plane.dragging = true; plane.dragStart() }
+                    MouseHandler {
+                        sourceDevice: mouseDev
+                        property point lastPos
+                        onPressed: lastPos = Qt.point(mouse.x, mouse.y)
+                        onPositionChanged: { if(plane.dragging) plane.drag(mouse.x - lastPos.x, mouse.y - lastPos.y); lastPos = Qt.point(mouse.x, mouse.y) }
+                        onReleased: { if(plane.dragging) { plane.dragging = false; plane.dragEnd() } }
+                    }
+                }
+            ]
         }
     }
 }
