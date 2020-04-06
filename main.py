@@ -4,7 +4,7 @@ from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtQuick import QQuickView
 from PyQt5.QtCore import QUrl
 
-if __name__ == '__main__':
+def main():
     app = QGuiApplication(sys.argv)
     view = QQuickView()
     view.setResizeMode(QQuickView.SizeRootObjectToView)
@@ -19,3 +19,6 @@ if __name__ == '__main__':
     # Deleting the view before it goes out of scope is required to make
     # sure all child QML instances are destroyed in the correct order.
     del view
+
+if __name__ == '__main__':
+    main()

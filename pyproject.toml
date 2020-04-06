@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "qt3d-transform-gizmo"
+version = "0.1.0"
+description = ""
+authors = []
+packages = [
+  {include="main.py"},
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+pyqt5 = "^5.14.1"
+pyqt3d = "^5.14.0"
+
+[tool.poetry.scripts]
+main = "main:main"
+
+[build-system]
+requires = ["poetry>=1.0"]
+build-backend = "poetry.masonry.api"
