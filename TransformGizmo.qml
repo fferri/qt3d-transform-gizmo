@@ -13,10 +13,10 @@ Entity {
     id: root
     property real size: 1
     readonly property real beamRadius: size * 0.035
-    property var layer
+    property Layer layer
     property var cameraController
-    property var targetTransform
-    property var targetEntity
+    property Transform targetTransform
+    property Entity targetEntity
     property real linearSpeed: 0.01
     property real angularSpeed: 2.0
     property bool visible: false
