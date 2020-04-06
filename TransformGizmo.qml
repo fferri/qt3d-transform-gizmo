@@ -190,16 +190,16 @@ Entity {
     NodeInstantiator {
         id: planes
         model: [
-            {x: 1, y: 1, z: 0, axes: [0, 1]},
-            {x: 1, y: 0, z: 1, axes: [0, 2]},
-            {x: 0, y: 1, z: 1, axes: [1, 2]},
+            {x: 1, y: 1, z: 0},
+            {x: 1, y: 0, z: 1},
+            {x: 0, y: 1, z: 1},
         ]
         delegate: TransformGizmoPlane {
             visible: root.visible
             gizmo: root
-            axes: modelData.axes
+            axes: [...(modelData.x ? [0] : []), ...(modelData.y ? [1] : []), ...(modelData.z ? [2] : [])]
             onDragStart: cameraController.enabled = false
-            onDrag: translate(modelData.x * linearSpeed * dx, modelData.y * linearSpeed * (modelData.axes[1] === 1 ? dy : dx), modelData.z * linearSpeed * dy)
+            onDrag: translate(modelData.x * linearSpeed * dx, modelData.y * linearSpeed * (axes[1] === 1 ? dy : dx), modelData.z * linearSpeed * dy)
             onDragEnd: cameraController.enabled = true
         }
     }
