@@ -228,17 +228,17 @@ Entity {
     NodeInstantiator {
         id: beams
         model: [
-            {rx:  0, ry: 0, rz: -90, x: 1, y: 0, z: 0, color: "#f33", name: "beamX"},
-            {rx:  0, ry: 0, rz:   0, x: 0, y: 1, z: 0, color: "#3f3", name: "beamY"},
-            {rx: 90, ry: 0, rz:   0, x: 0, y: 0, z: 1, color: "#33f", name: "beamZ"}
+            {r: Qt.vector3d( 0, 0, -90), v: Qt.vector3d(1, 0, 0), color: "#f33", name: "beamX"},
+            {r: Qt.vector3d( 0, 0,   0), v: Qt.vector3d(0, 1, 0), color: "#3f3", name: "beamY"},
+            {r: Qt.vector3d(90, 0,   0), v: Qt.vector3d(0, 0, 1), color: "#33f", name: "beamZ"}
         ]
         delegate: Entity {
             components: [
                 Transform {
-                    translation: Qt.vector3d(modelData.x, modelData.y, modelData.z).times(modeSwitcherSphere.radius0 * 1.1)
-                    rotationX: modelData.rx
-                    rotationY: modelData.ry
-                    rotationZ: modelData.rz
+                    translation: modelData.v.times(modeSwitcherSphere.radius0 * 1.1)
+                    rotationX: modelData.r.x
+                    rotationY: modelData.r.y
+                    rotationZ: modelData.r.z
                 }
             ]
 
@@ -336,9 +336,9 @@ Entity {
     NodeInstantiator {
         id: planes
         model: [
-            {x: 1, y: 1, z: 0, name: "planeXY"},
-            {x: 1, y: 0, z: 1, name: "planeXZ"},
-            {x: 0, y: 1, z: 1, name: "planeYZ"},
+            {v: Qt.vector3d(1, 1, 0), name: "planeXY"},
+            {v: Qt.vector3d(1, 0, 1), name: "planeXZ"},
+            {v: Qt.vector3d(0, 1, 1), name: "planeYZ"},
         ]
         delegate: Entity {
             id: plane
@@ -346,9 +346,9 @@ Entity {
             readonly property bool active: root.activeElement === modelData.name
             readonly property bool hilighted: active || (root.activeElement === "" && hover)
             readonly property color color: "#dd6"
-            readonly property bool x: modelData.x
-            readonly property bool y: modelData.y
-            readonly property bool z: modelData.z
+            readonly property bool x: modelData.v.x
+            readonly property bool y: modelData.v.y
+            readonly property bool z: modelData.v.z
             readonly property var axes: [...(x ? [0] : []), ...(y ? [1] : []), ...(z ? [2] : [])]
             property bool dragging: false
 
@@ -365,7 +365,7 @@ Entity {
                 Transform {
                     readonly property real margin: root.size * 0.025
                     readonly property real d: root.beamRadius + margin + cuboid.squareSize / 2
-                    translation: Qt.vector3d(plane.x ? d : 0, plane.y ? d : 0, plane.z ? d : 0)
+                    translation: modelData.v.times(d)
                 },
                 PhongMaterial {
                     ambient: plane.hilighted ? Qt.lighter(plane.color, root.hoverHilightFactor) : plane.color
