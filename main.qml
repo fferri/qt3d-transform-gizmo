@@ -18,8 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import QtQuick.Scene3D 2.0
 import QtQuick 2.2 as QtQuick
-import QtQuick.Controls 2.12 as QtQuick
-import QtQuick.Window 2.13 as QtQuick
+import QtQuick.Controls 2.2 as QtQuick
+import QtQuick.Window 2.2 as QtQuick
 
 import Qt3D.Core 2.0
 import Qt3D.Render 2.0

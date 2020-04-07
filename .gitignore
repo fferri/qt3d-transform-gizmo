@@ -1,1 +1,6 @@
 *.pro.user
+*.qmlc
+*.pyc
+*.egg-info
+*.qmake.stash
+poetry.lock
