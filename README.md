@@ -1,7 +1,7 @@
 # qt3d-transform-gizmo
 This project provides a gizmo for graphical translation and rotation of objects in a Qt3D scene implemented in QML.
 
-[screenshot](screenshot.png)
+![screenshot](screenshot.png)
 
 # Build and run using C++
 
@@ -13,7 +13,7 @@ This project provides a gizmo for graphical translation and rotation of objects 
 ```shell
 qmake
 make
-./main
+./qt3d-transform-gizmo
 ```
 
 # Run using Python
@@ -27,5 +27,5 @@ python -m poetry install
 Start the application:
 
 ```shell
-poetry run main
+poetry run qt3d-transform-gizmo
 ```
