@@ -9,11 +9,15 @@ int main(int argc, char *argv[])
 
     QGuiApplication app(argc, argv);
 
-    QQuickView view;
-    view.resize(500, 500);
-    view.setResizeMode(QQuickView::SizeRootObjectToView);
-    view.setSource(QUrl("qrc:/main.qml"));
-    view.show();
+    const QUrl mainUrl(QStringLiteral("qrc:/main.qml"));
+    QQmlApplicationEngine engine;
+    QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
+                     &app, [&](QObject *obj, const QUrl &objUrl) {
+        if(!obj && mainUrl == objUrl)
+            QCoreApplication::exit(-1);
+    }, Qt::QueuedConnection);
+    engine.addImportPath("qrc:///");
+    engine.load(mainUrl);
 
     return app.exec();
 }
