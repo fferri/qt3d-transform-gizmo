@@ -1,24 +1,34 @@
-import sys
-import os
-from PyQt5.QtGui import QGuiApplication
-from PyQt5.QtQuick import QQuickView
-from PyQt5.QtCore import QUrl
+#!/usr/bin/env python
+# -*- conding: utf-8 -*-
+
+import os, sys
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtQml import QQmlApplicationEngine
+
+
+class App():
+
+    def __init__(self, qapp):
+
+        self.engine = QQmlApplicationEngine()
+        self.engine.load('main.qml')
+        try:
+            qmlroot = self.engine.rootObjects()[0]
+        except:
+            print('Failed to load QML')
+            sys.exit()
 
 def main():
-    app = QGuiApplication(sys.argv)
-    view = QQuickView()
-    view.setResizeMode(QQuickView.SizeRootObjectToView)
 
-    qmlFile = os.path.join(os.path.dirname(__file__), 'main.qml')
-    view.setSource(QUrl.fromLocalFile(os.path.abspath(qmlFile)))
-    if view.status() == QQuickView.Error:
-        sys.exit(-1)
-    view.show()
+    #Set up the application window
+    qapp = QApplication(sys.argv)
 
-    app.exec_()
-    # Deleting the view before it goes out of scope is required to make
-    # sure all child QML instances are destroyed in the correct order.
-    del view
+    #Create the App
+    app = App(qapp)
+
+    #execute and cleanup
+    sys.exit(qapp.exec_())
+
 
 if __name__ == '__main__':
     main()

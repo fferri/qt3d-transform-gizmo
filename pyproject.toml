@@ -13,7 +13,7 @@ pyqt5 = "^5.14.1"
 pyqt3d = "^5.14.0"
 
 [tool.poetry.scripts]
-main = "main:main"
+qt3d-transform-gizmo = "main:main"
 
 [build-system]
 requires = ["poetry>=1.0"]
