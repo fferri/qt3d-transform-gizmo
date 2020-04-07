@@ -17,7 +17,6 @@ Entity {
     property Camera camera
     property Scene3D scene3d
     property Transform targetTransform
-    property Entity targetEntity
     property real linearSpeed: 0.01
     property real angularSpeed: 2.0
     property bool visible: false
@@ -140,7 +139,6 @@ Entity {
     function attachTo(entity) {
         var t = getTransform(entity)
         if(t) {
-            targetEntity = entity
             targetTransform = t
             root.parent = entity
             fixOwnTransform()
