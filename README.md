@@ -13,7 +13,7 @@ This project provides a gizmo for graphical translation and rotation of objects 
 ```shell
 qmake
 make
-./main
+./qt3d-transform-gizmo
 ```
 
 # Run using Python
@@ -27,5 +27,5 @@ python -m poetry install
 Start the application:
 
 ```shell
-poetry run main
+poetry run qt3d-transform-gizmo
 ```
