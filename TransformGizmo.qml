@@ -17,6 +17,7 @@ Entity {
     property Camera camera
     property Scene3D scene3d
     property Transform targetTransform
+    property Entity previousParent
     property real linearSpeed: 0.01
     property real angularSpeed: 2.0
     property bool visible: false
@@ -120,6 +121,10 @@ Entity {
         i = i.times(Qt.matrix4x4(1,0,0,t.m14,0,1,0,t.m24,0,0,1,t.m34,0,0,0,1))
         ownTransform.matrix = i
 
+        updateAbsolutePosition()
+    }
+
+    function updateAbsolutePosition() {
         // compute absolute position to expose as a property
         var m = getAbsoluteMatrix()
         absolutePosition = Qt.vector3d(m.m14, m.m24, m.m34)
@@ -140,10 +145,19 @@ Entity {
         var t = getTransform(entity)
         if(t) {
             targetTransform = t
+            previousParent = root.parent
             root.parent = entity
             fixOwnTransform()
             visible = true
         }
+    }
+
+    function detach() {
+        targetTransform = null
+        root.parent = previousParent
+        visible = false
+        ownTransform.matrix = Qt.matrix4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)
+        updateAbsolutePosition()
     }
 
     function angleAxisToQuat(angle, x, y, z) {
@@ -202,10 +216,17 @@ Entity {
         sourceDevice: mouseDev
         property point lastPos
         onPressed: {
-            if(hoverElement === TransformGizmo.UIElement.None) return
-            lastPos = Qt.point(mouse.x, mouse.y)
-            if(cameraController) cameraController.enabled = false
-            activeElement = hoverElement
+            if(mouse.button == Qt.RightButton) {
+                detach()
+                return
+            }
+            if(mouse.button == Qt.LeftButton) {
+                if(hoverElement === TransformGizmo.UIElement.None) return
+                lastPos = Qt.point(mouse.x, mouse.y)
+                if(cameraController) cameraController.enabled = false
+                activeElement = hoverElement
+                return
+            }
         }
         onPositionChanged: {
             if(activeElement === TransformGizmo.UIElement.None) return
