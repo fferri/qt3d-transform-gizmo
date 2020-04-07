@@ -360,7 +360,6 @@ Entity {
             readonly property bool active: root.activeElement === modelData.element
             readonly property bool hilighted: active || (root.activeElement === TransformGizmo.UIElement.None && hover)
             readonly property color color: "#dd6"
-            readonly property var axes: [...(modelData.v.x ? [0] : []), ...(modelData.v.y ? [1] : []), ...(modelData.v.z ? [2] : [])]
             components: [cuboid, planeTransform, planeMaterial, planePicker]
 
             CuboidMesh {
