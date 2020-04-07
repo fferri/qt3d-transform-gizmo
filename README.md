@@ -1,6 +1,8 @@
 # qt3d-transform-gizmo
 This project provides a gizmo for graphical translation and rotation of objects in a Qt3D scene implemented in QML.
 
+[screenshot](screenshot.png)
+
 # Build and run using C++
 
 * Only tested on Linux.
