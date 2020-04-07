@@ -1,6 +1,5 @@
 import QtQuick.Scene3D 2.0
 import QtQuick 2.2 as QQ2
-import QtQuick.Window 2.13
 
 import Qt3D.Core 2.0
 import Qt3D.Render 2.0
@@ -15,6 +14,8 @@ Entity {
     readonly property real beamRadius: size * 0.035
     property Layer layer
     property var cameraController
+    property Camera camera
+    property Scene3D scene3d
     property Transform targetTransform
     property Entity targetEntity
     property real linearSpeed: 0.01
@@ -49,53 +50,6 @@ Entity {
         PlaneYZ
     }
 
-    Transform {
-        id: ownTransform
-    }
-
-    MouseDevice {
-        id: mouseDev
-    }
-
-    MouseHandler {
-        sourceDevice: mouseDev
-        property point lastPos
-        onPressed: {
-            if(hoverElement === TransformGizmo.UIElement.None) return
-            lastPos = Qt.point(mouse.x, mouse.y)
-            if(cameraController) cameraController.enabled = false
-            activeElement = hoverElement
-        }
-        onPositionChanged: {
-            if(activeElement === TransformGizmo.UIElement.None) return
-            var dx = mouse.x - lastPos.x
-            var dy = mouse.y - lastPos.y
-            switch(activeElement) {
-            case TransformGizmo.UIElement.BeamX:
-            case TransformGizmo.UIElement.BeamY:
-            case TransformGizmo.UIElement.BeamZ:
-                var x = activeElement === TransformGizmo.UIElement.BeamX
-                var y = activeElement === TransformGizmo.UIElement.BeamY
-                var z = activeElement === TransformGizmo.UIElement.BeamZ
-                switch(mode) {
-                case TransformGizmo.Mode.Translation: translate(x * dy, y * dy, z * dy); break
-                case TransformGizmo.Mode.Rotation: rotate(x * dy, y * dy, z * dy); break
-                case TransformGizmo.Mode.Scale: scale(x * dy, y * dy, z * dy); break
-                }
-                break;
-            case TransformGizmo.UIElement.PlaneXY: translate(dx, dy, 0); break
-            case TransformGizmo.UIElement.PlaneXZ: translate(dx, 0, dy); break
-            case TransformGizmo.UIElement.PlaneYZ: translate(0, dx, dy); break
-            }
-            lastPos = Qt.point(mouse.x, mouse.y)
-        }
-        onReleased: {
-            if(activeElement === TransformGizmo.UIElement.None) return
-            if(cameraController) cameraController.enabled = true
-            activeElement = TransformGizmo.UIElement.None
-        }
-    }
-
     // called by ObjectPickers of individual UI elements:
     function trackUIElement(element, active) {
         if(active) hoverElements.add(element)
@@ -122,6 +76,42 @@ Entity {
             entity = entity.parent
         }
         return m
+    }
+
+    function project(v, modelView, projection, viewport) {
+        // ported from qtbase/src/gui/math3d/qvector3d.cpp
+        var tmp = Qt.vector4d(v.x, v.y, v.z, 1)
+        tmp = projection.times(modelView).times(tmp)
+        if(Math.abs(tmp.z) < 0.00001)
+            tmp.z = 1
+        tmp = tmp.times(1 / tmp.w)
+
+        tmp = tmp.times(0.5).plus(Qt.vector4d(0.5, 0.5, 0.5, 0.5))
+        tmp.x = tmp.x * viewport.width + viewport.x
+        tmp.y = tmp.y * viewport.height + viewport.y
+        return Qt.vector3d(tmp.x, tmp.y, tmp.z)
+    }
+
+    function projectMotion(dx, dy) {
+        var mtx = getAbsoluteMatrix()
+        var mv = camera.viewMatrix.times(mtx)
+        var p = camera.projectionMatrix
+        var v = Qt.rect(0, 0, scene3d.width, scene3d.height)
+
+        var s0 = project(Qt.vector3d(0,0,0),mv,p,v)
+        var sx = project(Qt.vector3d(1,0,0),mv,p,v).minus(s0)
+        var sy = project(Qt.vector3d(0,1,0),mv,p,v).minus(s0)
+        var sz = project(Qt.vector3d(0,0,1),mv,p,v).minus(s0)
+        sx.z = sy.z = sz.z = 0
+        sx = sx.normalized()
+        sy = sy.normalized()
+        sz = sz.normalized()
+
+        var d = Qt.vector3d(dx, dy, 0)
+        var px = d.dotProduct(sx)
+        var py = d.dotProduct(sy)
+        var pz = d.dotProduct(sz)
+        return Qt.vector3d(px, py, pz)
     }
 
     function fixOwnTransform() {
@@ -200,6 +190,54 @@ Entity {
         targetTransform.scale3D.x += linearSpeed * dx
         targetTransform.scale3D.y += linearSpeed * dy
         targetTransform.scale3D.z += linearSpeed * dz
+    }
+
+    Transform {
+        id: ownTransform
+    }
+
+    MouseDevice {
+        id: mouseDev
+    }
+
+    MouseHandler {
+        sourceDevice: mouseDev
+        property point lastPos
+        onPressed: {
+            if(hoverElement === TransformGizmo.UIElement.None) return
+            lastPos = Qt.point(mouse.x, mouse.y)
+            if(cameraController) cameraController.enabled = false
+            activeElement = hoverElement
+        }
+        onPositionChanged: {
+            if(activeElement === TransformGizmo.UIElement.None) return
+            var dx = mouse.x - lastPos.x
+            var dy = mouse.y - lastPos.y
+            var d = projectMotion(dx, -dy)
+            switch(activeElement) {
+            case TransformGizmo.UIElement.BeamX:
+            case TransformGizmo.UIElement.BeamY:
+            case TransformGizmo.UIElement.BeamZ:
+                var x = activeElement === TransformGizmo.UIElement.BeamX
+                var y = activeElement === TransformGizmo.UIElement.BeamY
+                var z = activeElement === TransformGizmo.UIElement.BeamZ
+                switch(mode) {
+                case TransformGizmo.Mode.Translation: translate(x * d.x, y * d.y, z * d.z); break
+                case TransformGizmo.Mode.Rotation: rotate(x * d.x, y * d.y, z * d.z); break
+                case TransformGizmo.Mode.Scale: scale(x * d.x, y * d.y, z * d.z); break
+                }
+                break;
+            case TransformGizmo.UIElement.PlaneXY: translate(d.x, d.y, 0); break
+            case TransformGizmo.UIElement.PlaneXZ: translate(d.x, 0, d.z); break
+            case TransformGizmo.UIElement.PlaneYZ: translate(0, d.y, d.z); break
+            }
+            lastPos = Qt.point(mouse.x, mouse.y)
+        }
+        onReleased: {
+            if(activeElement === TransformGizmo.UIElement.None) return
+            if(cameraController) cameraController.enabled = true
+            activeElement = TransformGizmo.UIElement.None
+        }
     }
 
     QQ2.Loader {
@@ -360,7 +398,6 @@ Entity {
             readonly property bool active: root.activeElement === modelData.element
             readonly property bool hilighted: active || (root.activeElement === TransformGizmo.UIElement.None && hover)
             readonly property color color: "#dd6"
-            readonly property var axes: [...(modelData.v.x ? [0] : []), ...(modelData.v.y ? [1] : []), ...(modelData.v.z ? [2] : [])]
             components: [cuboid, planeTransform, planeMaterial, planePicker]
 
             CuboidMesh {
