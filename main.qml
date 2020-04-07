@@ -38,6 +38,7 @@ QtQuick.ApplicationWindow {
     title: "Qt3D Transform Gizmo"
 
     Settings{
+      id: settings
       property alias x: mainWindow.x
       property alias y: mainWindow.y
       property alias height: mainWindow.height
