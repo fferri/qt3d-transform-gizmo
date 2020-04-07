@@ -167,6 +167,7 @@ Entity {
             root.parent = entity
             fixOwnTransform()
             visible = true
+            mode = TransformGizmo.Mode.Translation // reset mode
         }
     }
 
@@ -275,6 +276,24 @@ Entity {
             if(cameraController) cameraController.enabled = true
             activeElement = TransformGizmo.UIElement.None
         }
+    }
+
+    KeyboardDevice {
+			id: keyboardDev
+		}
+
+    KeyboardHandler {
+      id: keyboardHandler
+      focus: true
+      sourceDevice: keyboardDev
+
+      onReleased: {
+        switch(event.key) {
+        case Qt.Key_G: mode = TransformGizmo.Mode.Translation; break
+        case Qt.Key_R: mode = TransformGizmo.Mode.Rotation; break
+        case Qt.Key_S: mode = TransformGizmo.Mode.Scale; break
+        }
+      }
     }
 
     QQ2.Loader {

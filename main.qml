@@ -40,6 +40,7 @@ QtQuick.ApplicationWindow {
         anchors.fill: parent
         aspects: ["render", "logic", "input"]
         hoverEnabled: true // needed for ObjectPickers to handle hover events
+        focus: true // needed for keyboard events
 
         Entity {
             id: root
