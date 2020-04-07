@@ -39,6 +39,9 @@ def main():
 
     #Set up the application window
     qapp = QApplication(sys.argv)
+    qapp.setOrganizationName("fferri")
+    qapp.setOrganizationDomain("3D")
+    qapp.setApplicationName("Qt3D Transform Gizmo")
 
     #Create the App
     app = App(qapp)

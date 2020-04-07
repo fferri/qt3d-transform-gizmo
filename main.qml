@@ -28,12 +28,21 @@ import Qt3D.Logic 2.0
 import Qt3D.Extras 2.0
 import Qt3D.Animation 2.9
 
+import Qt.labs.settings 1.0
+
 QtQuick.ApplicationWindow {
     id: mainWindow
     visible: true
     width: 500
     height: 500
     title: "Qt3D Transform Gizmo"
+
+    Settings{
+      property alias x: mainWindow.x
+      property alias y: mainWindow.y
+      property alias height: mainWindow.height
+      property alias width: mainWindow.width
+    }
 
     Scene3D {
         id: scene3d
