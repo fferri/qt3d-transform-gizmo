@@ -30,6 +30,27 @@ import Qt.labs.settings 1.0
 
 Entity {
     id: root
+
+    Settings{
+      id: settings
+
+      // Mimic Blender colors
+      property string xColor: "#FF3352"
+      property string yColor: "#8BDC00"
+      property string zColor: "#2890FF"
+      property string centerColor: "#333"
+      property real notSelectedAlpha: 0.8
+
+      // Mimic Blender key bindings
+      property var translationKey: Qt.Key_G  // [G]rab
+      property var rotationKey: Qt.Key_R     // [R]otate
+      property var scaleKey: Qt.Key_S        // [S]cale
+
+      // interface
+      property real linearSpeed: 0.01
+      property real angularSpeed: 2.0
+    }
+
     property real size: 1
     readonly property real beamRadius: size * 0.035
     property Layer layer
@@ -38,11 +59,8 @@ Entity {
     property Scene3D scene3d
     property Transform targetTransform
     property Entity previousParent
-    property real linearSpeed: 0.01
-    property real angularSpeed: 2.0
     property bool visible: false
     property vector3d absolutePosition: Qt.vector3d(0, 0, 0)
-    property real hoverHilightFactor: 1.44
     property real hoverZoomFactor: 1.5
     property int mode: TransformGizmo.Mode.Translation
     property bool canTranslate: true
@@ -68,19 +86,6 @@ Entity {
         PlaneXY,
         PlaneXZ,
         PlaneYZ
-    }
-
-    Settings{
-      id: settings
-      // Mimic Blender colors
-      property var xColor: "#FF3352"
-      property var yColor: "#8BDC00"
-      property var zColor: "#2890FF"
-
-      // Mimic Blender key bindings
-      property var translationKey: Qt.Key_G  // [G]rab
-      property var rotationKey: Qt.Key_R     // [R]otate
-      property var scaleKey: Qt.Key_S        // [S]cale
     }
 
     // called by ObjectPickers of individual UI elements:
@@ -182,7 +187,6 @@ Entity {
             root.parent = entity
             fixOwnTransform()
             visible = true
-            mode = TransformGizmo.Mode.Translation // reset mode
         }
     }
 
@@ -219,23 +223,23 @@ Entity {
 
     function translate(dx, dy, dz) {
         if(!targetTransform) return
-        targetTransform.translation.x += linearSpeed * dx
-        targetTransform.translation.y += linearSpeed * dy
-        targetTransform.translation.z += linearSpeed * dz
+        targetTransform.translation.x += settings.linearSpeed * dx
+        targetTransform.translation.y += settings.linearSpeed * dy
+        targetTransform.translation.z += settings.linearSpeed * dz
     }
 
     function rotate(dx, dy, dz) {
         if(!targetTransform) return
-        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(angularSpeed * dx, 1, 0, 0), targetTransform.rotation)
-        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(angularSpeed * dy, 0, 1, 0), targetTransform.rotation)
-        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(angularSpeed * dz, 0, 0, 1), targetTransform.rotation)
+        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(settings.angularSpeed * dx, 1, 0, 0), targetTransform.rotation)
+        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(settings.angularSpeed * dy, 0, 1, 0), targetTransform.rotation)
+        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(settings.angularSpeed * dz, 0, 0, 1), targetTransform.rotation)
     }
 
     function scale(dx, dy, dz) {
         if(!targetTransform) return
-        targetTransform.scale3D.x += linearSpeed * dx
-        targetTransform.scale3D.y += linearSpeed * dy
-        targetTransform.scale3D.z += linearSpeed * dz
+        targetTransform.scale3D.x += settings.linearSpeed * dx
+        targetTransform.scale3D.y += settings.linearSpeed * dy
+        targetTransform.scale3D.z += settings.linearSpeed * dz
     }
 
     Transform {
@@ -322,7 +326,7 @@ Entity {
 
     Entity {
         id: modeSwitcher
-        readonly property color color: "#333"
+        readonly property color color: settings.centerColor
         readonly property bool hover: root.hoverElement === TransformGizmo.UIElement.ModeSwitcher
         readonly property bool active: root.activeElement === TransformGizmo.UIElement.ModeSwitcher
         readonly property bool hilighted: active || (root.activeElement === TransformGizmo.UIElement.None && hover)
@@ -336,9 +340,10 @@ Entity {
             enabled: root.visible
         }
 
-        PhongMaterial {
+        PhongAlphaMaterial {
             id: modeSwitcherMaterial
-            ambient: modeSwitcher.hilighted ? Qt.lighter(modeSwitcher.color, root.hoverHilightFactor) : modeSwitcher.color
+            ambient: modeSwitcher.color
+            alpha: modeSwitcher.hilighted ? 1: settings.notSelectedAlpha
         }
 
         ObjectPicker {
@@ -383,9 +388,10 @@ Entity {
                     onExited: root.trackUIElement(modelData.element, false)
                 }
 
-                PhongMaterial {
+                PhongAlphaMaterial {
                     id: beamMaterial
-                    ambient: beam.hilighted ? Qt.lighter(beam.color, root.hoverHilightFactor) : beam.color
+                    ambient: beam.color
+                    alpha: beam.hilighted ? 1 : settings.notSelectedAlpha
                 }
 
                 Entity {
@@ -393,7 +399,7 @@ Entity {
 
                     CylinderMesh {
                         id: lineMesh
-                        enabled: root.visible
+                        enabled: root.visible && root.mode != TransformGizmo.Mode.Rotation
                         radius: root.beamRadius
                         length: root.size * 0.8
                     }
@@ -422,22 +428,6 @@ Entity {
                 }
 
                 Entity {
-                    components: [rotateMesh, rotateTransform, beamMaterial]
-
-                    CylinderMesh {
-                        id: rotateMesh
-                        enabled: root.visible && root.mode === TransformGizmo.Mode.Rotation
-                        radius: root.beamRadius * 2
-                        length: root.beamRadius * 2
-                    }
-
-                    Transform {
-                        id: rotateTransform
-                        translation: Qt.vector3d(0, lineMesh.length + rotateMesh.length / 2, 0)
-                    }
-                }
-
-                Entity {
                     components: [scaleMesh, scaleTransform, beamMaterial]
 
                     CuboidMesh {
@@ -458,6 +448,52 @@ Entity {
     }
 
     NodeInstantiator {
+        id: rings
+        model: [
+            {r: Qt.vector3d( 0, 90, 0), v: Qt.vector3d(1, 0, 0), color: settings.xColor, element: TransformGizmo.UIElement.BeamX},
+            {r: Qt.vector3d( 90, 0, 0), v: Qt.vector3d(0, 1, 0), color: settings.yColor, element: TransformGizmo.UIElement.BeamY},
+            {r: Qt.vector3d( 0, 0,  0), v: Qt.vector3d(0, 0, 1), color: settings.zColor, element: TransformGizmo.UIElement.BeamZ}
+        ]
+        delegate: Entity {
+            id: ring
+            readonly property bool hover: root.hoverElement === modelData.element
+            readonly property bool active: root.activeElement === modelData.element
+            readonly property bool hilighted: active || (root.activeElement === TransformGizmo.UIElement.None && hover)
+            readonly property color color: modelData.color
+            components: [rotateMesh, ringTransform, ringMaterial, ringPicker]
+
+            TorusMesh {
+                id: rotateMesh
+                enabled: root.visible && root.mode === TransformGizmo.Mode.Rotation
+                radius: root.size *.75
+                minorRadius: root.beamRadius
+                rings: 100
+                slices: 20
+            }
+
+            Transform {
+                id: ringTransform
+                rotationX: modelData.r.x
+                rotationY: modelData.r.y
+                rotationZ: modelData.r.z
+            }
+
+            PhongAlphaMaterial {
+                id: ringMaterial
+                ambient: ring.color
+                alpha: ring.hilighted ? 1 : settings.notSelectedAlpha
+            }
+
+            ObjectPicker {
+                id: ringPicker
+                hoverEnabled: true
+                onEntered: root.trackUIElement(modelData.element, true)
+                onExited: root.trackUIElement(modelData.element, false)
+            }
+          }
+        }
+
+    NodeInstantiator {
         id: planes
         model: [
             {v: Qt.vector3d(1, 1, 0), color: settings.zColor, element: TransformGizmo.UIElement.PlaneXY},
@@ -476,7 +512,7 @@ Entity {
                 id: cuboid
                 readonly property real squareSize: root.size * 0.2
                 readonly property real squareThickness: root.beamRadius * 0.5
-                enabled: root.visible
+                enabled: root.visible && root.mode != TransformGizmo.Mode.Rotation
                 xExtent: modelData.v.x ? squareSize : squareThickness
                 yExtent: modelData.v.y ? squareSize : squareThickness
                 zExtent: modelData.v.z ? squareSize : squareThickness
@@ -489,8 +525,8 @@ Entity {
 
             PhongAlphaMaterial {
                 id: planeMaterial
-                ambient: plane.hilighted ? Qt.lighter(plane.color, root.hoverHilightFactor) : plane.color
-                alpha: 0.7
+                ambient: plane.color
+                alpha: plane.hilighted ? 1 : settings.notSelectedAlpha
             }
 
             ObjectPicker {
