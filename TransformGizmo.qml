@@ -427,6 +427,22 @@ Entity {
                 }
 
                 Entity {
+                    components: [rotateMesh, rotateTransform, beamMaterial]
+
+                    CylinderMesh {
+                        id: rotateMesh
+                        enabled: root.visible && root.mode === TransformGizmo.Mode.Rotation
+                        radius: root.beamRadius * 2
+                        length: root.beamRadius * 2
+                    }
+
+                    Transform {
+                        id: rotateTransform
+                        translation: Qt.vector3d(0, lineMesh.length + rotateMesh.length / 2, 0)
+                    }
+                }
+
+                Entity {
                     components: [scaleMesh, scaleTransform, beamMaterial]
 
                     CuboidMesh {
@@ -445,52 +461,6 @@ Entity {
             }
         }
     }
-
-    NodeInstantiator {
-        id: rings
-        model: [
-            {r: Qt.vector3d( 0, 90, 0), v: Qt.vector3d(1, 0, 0), color: xColor, element: TransformGizmo.UIElement.BeamX},
-            {r: Qt.vector3d( 90, 0, 0), v: Qt.vector3d(0, 1, 0), color: yColor, element: TransformGizmo.UIElement.BeamY},
-            {r: Qt.vector3d( 0, 0,  0), v: Qt.vector3d(0, 0, 1), color: zColor, element: TransformGizmo.UIElement.BeamZ}
-        ]
-        delegate: Entity {
-            id: ring
-            readonly property bool hover: root.hoverElement === modelData.element
-            readonly property bool active: root.activeElement === modelData.element
-            readonly property bool hilighted: active || (root.activeElement === TransformGizmo.UIElement.None && hover)
-            readonly property color color: modelData.color
-            components: [rotateMesh, ringTransform, ringMaterial, ringPicker]
-
-            TorusMesh {
-                id: rotateMesh
-                enabled: root.visible && root.mode === TransformGizmo.Mode.Rotation
-                radius: root.size *.75
-                minorRadius: root.beamRadius
-                rings: 100
-                slices: 20
-            }
-
-            Transform {
-                id: ringTransform
-                rotationX: modelData.r.x
-                rotationY: modelData.r.y
-                rotationZ: modelData.r.z
-            }
-
-            PhongAlphaMaterial {
-                id: ringMaterial
-                ambient: ring.color
-                alpha: ring.hilighted ? 1 : notSelectedAlpha
-            }
-
-            ObjectPicker {
-                id: ringPicker
-                hoverEnabled: true
-                onEntered: root.trackUIElement(modelData.element, true)
-                onExited: root.trackUIElement(modelData.element, false)
-            }
-          }
-        }
 
     NodeInstantiator {
         id: planes
