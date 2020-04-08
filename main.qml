@@ -123,6 +123,12 @@ QtQuick.ApplicationWindow {
                 camera: mainCamera
                 scene3d: scene3d
                 size: 0.125 * absolutePosition.minus(mainCamera.position).length()
+
+                // colors
+                xColor: "#FF3352"
+                yColor: "#8BDC00"
+                zColor: "#2890FF"
+                centerColor: "#333"
             }
 
             Floor {components: [Transform {rotationX: 90; translation: "0,-.5,0"}]}

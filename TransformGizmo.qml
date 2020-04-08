@@ -26,33 +26,9 @@ import Qt3D.Logic 2.0
 import Qt3D.Extras 2.0
 import Qt3D.Animation 2.9
 
-import Qt.labs.settings 1.0
-
 Entity {
     id: root
 
-    Settings{
-      id: settings
-
-      // Mimic Blender colors
-      property string xColor: "#FF3352"
-      property string yColor: "#8BDC00"
-      property string zColor: "#2890FF"
-      property string centerColor: "#333"
-      property real notSelectedAlpha: 0.8
-
-      // Mimic Blender key bindings
-      property var translationKey: Qt.Key_G  // [G]rab
-      property var rotationKey: Qt.Key_R     // [R]otate
-      property var scaleKey: Qt.Key_S        // [S]cale
-
-      // interface
-      property real linearSpeed: 0.01
-      property real angularSpeed: 2.0
-    }
-
-    property real size: 1
-    readonly property real beamRadius: size * 0.035
     property Layer layer
     property var cameraController
     property Camera camera
@@ -61,14 +37,37 @@ Entity {
     property Entity previousParent
     property bool visible: false
     property vector3d absolutePosition: Qt.vector3d(0, 0, 0)
-    property real hoverZoomFactor: 1.5
     property int mode: TransformGizmo.Mode.Translation
-    property bool canTranslate: true
-    property bool canRotate: true
-    property bool canScale: false
     property var hoverElements: new Set()
     property var hoverElement: TransformGizmo.UIElement.None
     property var activeElement: TransformGizmo.UIElement.None
+
+    // enable modes
+    property bool canTranslate: true
+    property bool canRotate: true
+    property bool canScale: false
+
+    // gizmo size
+    property real hoverZoomFactor: 1.5
+    property real size: 1
+    readonly property real beamRadius: size * 0.035
+
+    // interaction parameters
+    property real notSelectedAlpha: 0.8
+    property real linearSpeed: 0.01
+    property real angularSpeed: 2.0
+
+    // colors
+    property string xColor: "#F00"
+    property string yColor: "#0F0"
+    property string zColor: "#00F"
+    property string centerColor: "#333"
+
+    // key bindings
+    property var translationKey: Qt.Key_G  // [G]rab
+    property var rotationKey: Qt.Key_R     // [R]otate
+    property var scaleKey: Qt.Key_S        // [S]cale
+
     components: [ownTransform, layer]
 
     enum Mode {
@@ -223,23 +222,23 @@ Entity {
 
     function translate(dx, dy, dz) {
         if(!targetTransform) return
-        targetTransform.translation.x += settings.linearSpeed * dx
-        targetTransform.translation.y += settings.linearSpeed * dy
-        targetTransform.translation.z += settings.linearSpeed * dz
+        targetTransform.translation.x += linearSpeed * dx
+        targetTransform.translation.y += linearSpeed * dy
+        targetTransform.translation.z += linearSpeed * dz
     }
 
     function rotate(dx, dy, dz) {
         if(!targetTransform) return
-        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(settings.angularSpeed * dx, 1, 0, 0), targetTransform.rotation)
-        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(settings.angularSpeed * dy, 0, 1, 0), targetTransform.rotation)
-        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(settings.angularSpeed * dz, 0, 0, 1), targetTransform.rotation)
+        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(angularSpeed * dx, 1, 0, 0), targetTransform.rotation)
+        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(angularSpeed * dy, 0, 1, 0), targetTransform.rotation)
+        targetTransform.rotation = multiplyQuaternion(angleAxisToQuat(angularSpeed * dz, 0, 0, 1), targetTransform.rotation)
     }
 
     function scale(dx, dy, dz) {
         if(!targetTransform) return
-        targetTransform.scale3D.x += settings.linearSpeed * dx
-        targetTransform.scale3D.y += settings.linearSpeed * dy
-        targetTransform.scale3D.z += settings.linearSpeed * dz
+        targetTransform.scale3D.x += linearSpeed * dx
+        targetTransform.scale3D.y += linearSpeed * dy
+        targetTransform.scale3D.z += linearSpeed * dz
     }
 
     Transform {
@@ -308,9 +307,9 @@ Entity {
 
       onReleased: {
         switch(event.key) {
-        case settings.translationKey: mode = TransformGizmo.Mode.Translation; break
-        case settings.rotationKey: mode = TransformGizmo.Mode.Rotation; break
-        case settings.scaleKey: mode = TransformGizmo.Mode.Scale; break
+        case translationKey: mode = TransformGizmo.Mode.Translation; break
+        case rotationKey: mode = TransformGizmo.Mode.Rotation; break
+        case scaleKey: mode = TransformGizmo.Mode.Scale; break
         case Qt.Key_Escape: detach(); break
         }
       }
@@ -326,7 +325,7 @@ Entity {
 
     Entity {
         id: modeSwitcher
-        readonly property color color: settings.centerColor
+        readonly property color color: centerColor
         readonly property bool hover: root.hoverElement === TransformGizmo.UIElement.ModeSwitcher
         readonly property bool active: root.activeElement === TransformGizmo.UIElement.ModeSwitcher
         readonly property bool hilighted: active || (root.activeElement === TransformGizmo.UIElement.None && hover)
@@ -343,7 +342,7 @@ Entity {
         PhongAlphaMaterial {
             id: modeSwitcherMaterial
             ambient: modeSwitcher.color
-            alpha: modeSwitcher.hilighted ? 1: settings.notSelectedAlpha
+            alpha: modeSwitcher.hilighted ? 1: notSelectedAlpha
         }
 
         ObjectPicker {
@@ -358,9 +357,9 @@ Entity {
     NodeInstantiator {
         id: beams
         model: [
-            {r: Qt.vector3d( 0, 0, -90), v: Qt.vector3d(1, 0, 0), color: settings.xColor, element: TransformGizmo.UIElement.BeamX},
-            {r: Qt.vector3d( 0, 0,   0), v: Qt.vector3d(0, 1, 0), color: settings.yColor, element: TransformGizmo.UIElement.BeamY},
-            {r: Qt.vector3d(90, 0,   0), v: Qt.vector3d(0, 0, 1), color: settings.zColor, element: TransformGizmo.UIElement.BeamZ}
+            {r: Qt.vector3d( 0, 0, -90), v: Qt.vector3d(1, 0, 0), color: xColor, element: TransformGizmo.UIElement.BeamX},
+            {r: Qt.vector3d( 0, 0,   0), v: Qt.vector3d(0, 1, 0), color: yColor, element: TransformGizmo.UIElement.BeamY},
+            {r: Qt.vector3d(90, 0,   0), v: Qt.vector3d(0, 0, 1), color: zColor, element: TransformGizmo.UIElement.BeamZ}
         ]
         delegate: Entity {
             components: [beamTransform]
@@ -391,7 +390,7 @@ Entity {
                 PhongAlphaMaterial {
                     id: beamMaterial
                     ambient: beam.color
-                    alpha: beam.hilighted ? 1 : settings.notSelectedAlpha
+                    alpha: beam.hilighted ? 1 : notSelectedAlpha
                 }
 
                 Entity {
@@ -450,9 +449,9 @@ Entity {
     NodeInstantiator {
         id: rings
         model: [
-            {r: Qt.vector3d( 0, 90, 0), v: Qt.vector3d(1, 0, 0), color: settings.xColor, element: TransformGizmo.UIElement.BeamX},
-            {r: Qt.vector3d( 90, 0, 0), v: Qt.vector3d(0, 1, 0), color: settings.yColor, element: TransformGizmo.UIElement.BeamY},
-            {r: Qt.vector3d( 0, 0,  0), v: Qt.vector3d(0, 0, 1), color: settings.zColor, element: TransformGizmo.UIElement.BeamZ}
+            {r: Qt.vector3d( 0, 90, 0), v: Qt.vector3d(1, 0, 0), color: xColor, element: TransformGizmo.UIElement.BeamX},
+            {r: Qt.vector3d( 90, 0, 0), v: Qt.vector3d(0, 1, 0), color: yColor, element: TransformGizmo.UIElement.BeamY},
+            {r: Qt.vector3d( 0, 0,  0), v: Qt.vector3d(0, 0, 1), color: zColor, element: TransformGizmo.UIElement.BeamZ}
         ]
         delegate: Entity {
             id: ring
@@ -481,7 +480,7 @@ Entity {
             PhongAlphaMaterial {
                 id: ringMaterial
                 ambient: ring.color
-                alpha: ring.hilighted ? 1 : settings.notSelectedAlpha
+                alpha: ring.hilighted ? 1 : notSelectedAlpha
             }
 
             ObjectPicker {
@@ -496,9 +495,9 @@ Entity {
     NodeInstantiator {
         id: planes
         model: [
-            {v: Qt.vector3d(1, 1, 0), color: settings.zColor, element: TransformGizmo.UIElement.PlaneXY},
-            {v: Qt.vector3d(1, 0, 1), color: settings.yColor, element: TransformGizmo.UIElement.PlaneXZ},
-            {v: Qt.vector3d(0, 1, 1), color: settings.xColor, element: TransformGizmo.UIElement.PlaneYZ},
+            {v: Qt.vector3d(1, 1, 0), color: zColor, element: TransformGizmo.UIElement.PlaneXY},
+            {v: Qt.vector3d(1, 0, 1), color: yColor, element: TransformGizmo.UIElement.PlaneXZ},
+            {v: Qt.vector3d(0, 1, 1), color: xColor, element: TransformGizmo.UIElement.PlaneYZ},
         ]
         delegate: Entity {
             id: plane
@@ -526,7 +525,7 @@ Entity {
             PhongAlphaMaterial {
                 id: planeMaterial
                 ambient: plane.color
-                alpha: plane.hilighted ? 1 : settings.notSelectedAlpha
+                alpha: plane.hilighted ? 1 : notSelectedAlpha
             }
 
             ObjectPicker {
