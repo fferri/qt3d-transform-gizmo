@@ -398,7 +398,7 @@ Entity {
 
                     CylinderMesh {
                         id: lineMesh
-                        enabled: root.visible && root.mode != TransformGizmo.Mode.Rotation
+                        enabled: root.visible
                         radius: root.beamRadius
                         length: root.size * 0.8
                     }
