@@ -26,6 +26,9 @@ int main(int argc, char *argv[])
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
     QGuiApplication app(argc, argv);
+    app.setOrganizationName("fferri")
+    app.setOrganizationDomain("3D")
+    app.setApplicationName("Qt3D Transform Gizmo")
 
     const QUrl mainUrl(QStringLiteral("qrc:/main.qml"));
     QQmlApplicationEngine engine;

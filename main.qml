@@ -28,6 +28,8 @@ import Qt3D.Logic 2.0
 import Qt3D.Extras 2.0
 import Qt3D.Animation 2.9
 
+import Qt.labs.settings 1.0
+
 QtQuick.ApplicationWindow {
     id: mainWindow
     visible: true
@@ -35,11 +37,20 @@ QtQuick.ApplicationWindow {
     height: 500
     title: "Qt3D Transform Gizmo"
 
+    Settings{
+      id: settings
+      property alias x: mainWindow.x
+      property alias y: mainWindow.y
+      property alias height: mainWindow.height
+      property alias width: mainWindow.width
+    }
+
     Scene3D {
         id: scene3d
         anchors.fill: parent
         aspects: ["render", "logic", "input"]
         hoverEnabled: true // needed for ObjectPickers to handle hover events
+        focus: true // needed for keyboard events
 
         Entity {
             id: root
@@ -112,6 +123,12 @@ QtQuick.ApplicationWindow {
                 camera: mainCamera
                 scene3d: scene3d
                 size: 0.125 * absolutePosition.minus(mainCamera.position).length()
+
+                // colors
+                xColor: "#FF3352"
+                yColor: "#8BDC00"
+                zColor: "#2890FF"
+                centerColor: "#333"
             }
 
             Floor {components: [Transform {rotationX: 90; translation: "0,-.5,0"}]}
